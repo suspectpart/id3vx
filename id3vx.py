@@ -3,18 +3,32 @@ from struct import unpack
 from collections import namedtuple
 import sys
 
-ID3_MAGIC_IDENTIFIER = "ID3"
 
-TagHeader = namedtuple('TagHeader', 'identifier, major, minor, flags, size')
+class TagHeader:
+    """
+    Represents the 10-byte ID3v2.x tag header that must be present
+    at the very start of a tagged mp3 file.
+
+    See `ID3v2 tag header specification <http://id3.org/id3v2.3.0#ID3v2_header>`
+    """
+
+    ID3_IDENTIFIER = "ID3"
+    Fields = namedtuple('TagHeader', 'identifier, major, minor, flags, size')
+
+    def __init__(self, path_to_mp3):
+        with open(path_to_mp3, 'rb') as mp3:
+            fields = unpack('>3sBBBl', mp3.read(10))
+            self.__header = TagHeader.Fields(*fields)
+
+        if self._identifier() != TagHeader.ID3_IDENTIFIER:
+            raise Exception("No ID3v2.x Tag Header found.")
+
+    def _identifier(self):
+        return self.__header.identifier.decode("utf-8")
+
+    def __repr__(self):
+        return repr(self.__header)
+
 
 if __name__ == "__main__":
-    path_to_mp3 = sys.argv[1]
-
-    with open(path_to_mp3, 'rb') as mp3:
-        first_block = mp3.read(10)
-        tag_header = TagHeader._make(unpack('>3sBBBl', first_block))
-
-        if tag_header.identifier.decode("utf-8") != ID3_MAGIC_IDENTIFIER:
-            raise Exception("No id3v2.x Tag Header found.")
-
-        print(tag_header)
+    print(TagHeader(sys.argv[1]))
