@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-from struct import unpack
+from enum import IntFlag
 from collections import namedtuple
+from struct import unpack
 import sys
 
 
@@ -11,6 +12,11 @@ class TagHeader:
 
     See `ID3v2 tag header specification <http://id3.org/id3v2.3.0#ID3v2_header>`
     """
+
+    class Flags(IntFlag):
+        Sync = 1 << 6
+        Extended = 1 << 5
+        Experimental = 1 << 4
 
     ID3_IDENTIFIER = "ID3"
     Fields = namedtuple('TagHeader', 'identifier, major, minor, flags, size')
@@ -23,6 +29,9 @@ class TagHeader:
         if self._identifier() != TagHeader.ID3_IDENTIFIER:
             raise Exception("No ID3v2.x Tag Header found.")
 
+    def _flags(self):
+        return TagHeader.Flags(self.__header.flags)
+
     def _identifier(self):
         return self.__header.identifier.decode("utf-8")
 
@@ -31,4 +40,6 @@ class TagHeader:
 
 
 if __name__ == "__main__":
-    print(TagHeader(sys.argv[1]))
+    header = TagHeader(sys.argv[1])
+
+    print(header)
