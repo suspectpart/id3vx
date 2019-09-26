@@ -6,7 +6,6 @@ import sys
 DEFAULT_ENCODING = "iso-8859-1"
 ENCODINGS = {
     0: "iso-8859-1",
-    # TODO: I just guessed this, this won't work for sure
     1: "utf_16",
     2: "utf_16_be",
     3: "utf-8",
@@ -136,12 +135,14 @@ class FrameHeader:
 
     def frame_type(self):
         # TODO: this might be own class FrameId that handles this magic
-        if self.id().startswith(b"T"):
-            return TextFrame
-        elif self.id() == b"WXXX":
+        if self.id() == b'TXXX':
+            return UserDefinedTextFrame
+        elif self.id() == b'WXXX':
             return UserDefinedURLLinkFrame
         elif self.id() == b'COMM':
             return CommentFrame
+        elif self.id().startswith(b'T'):
+            return TextFrame
 
         return Frame
 
@@ -212,6 +213,9 @@ class TextFrame(Frame):
 
     Decodes all of the frame with the encoding read from the first byte.
     """
+    SEP_ONE_BYTE = b'\x00'
+    SEP_TWO_BYTES = 2 * SEP_ONE_BYTE
+
     def text(self):
         return super().fields()[1:].decode(self.encoding())
 
@@ -219,10 +223,30 @@ class TextFrame(Frame):
         return ENCODINGS.get(super().fields()[0], DEFAULT_ENCODING)
 
     def separator(self):
-        return b"\x00\x00" if self.encoding().startswith("utf_16") else b"\x00"
+        if self.encoding().startswith("utf_16"):
+            return TextFrame.SEP_TWO_BYTES
+        return TextFrame.SEP_ONE_BYTE
 
     def __str__(self):
         return self.text()
+
+
+class UserDefinedTextFrame(TextFrame):
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+        description, text, *_ = fields[1:].rsplit(self.separator())
+
+        self._description = description
+        self._text = text
+
+    def text(self):
+        return self._text.decode(self.encoding())
+
+    def description(self):
+        return self._description.decode(self.encoding())
+
+    def __str__(self):
+        return f'[description {self.description()}] {self.text()}'
 
 
 class UserDefinedURLLinkFrame(TextFrame):
@@ -232,7 +256,7 @@ class UserDefinedURLLinkFrame(TextFrame):
     """
     def __init__(self, header, fields):
         super().__init__(header, fields)
-        description, url = super().fields()[1:].split(self.separator(), 1)
+        description, url, *_ = fields[1:].rsplit(self.separator())
 
         self._description = description
         self._url = url
