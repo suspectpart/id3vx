@@ -301,6 +301,4 @@ if __name__ == "__main__":
     tag = Tag.read_from(path_to_mp3)
 
     print(tag)
-
-    for frame in tag:
-        print(repr(frame))
+    print(*(repr(frame) for frame in tag), sep="\n")
