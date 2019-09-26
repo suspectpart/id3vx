@@ -109,12 +109,7 @@ class FrameHeader:
     @staticmethod
     def read_from(mp3):
         identifier, size, flags = unpack('>4slh', mp3.read(10))
-
-        if not size:
-            # considered as padding, throw away
-            return None
-
-        return FrameHeader(identifier, size, flags)
+        return FrameHeader(identifier, size, flags) if size else None
 
     def __init__(self, identifier, size, flags):
         self._id = identifier
@@ -156,8 +151,10 @@ class Frame:
         self._fields = fields
 
     def header(self):
-        """The header of this frame"""
         return self._header
+
+    def fields(self):
+        return self._fields.decode(ENCODING)
 
     def id(self):
         """The 4-letter frame id of this frame.
@@ -175,16 +172,9 @@ class Frame:
         """
         return DECLARED_FRAMES.get(self.id(), self.id())
 
-    def fields(self):
-        """The fields string of this frame"""
-        return self._fields.decode(ENCODING)
-
     def __len__(self):
         """The overall size of the frame in bytes, including header."""
         return FrameHeader.SIZE + self.header().size()
-
-    def __str__(self):
-        return f'{self.id()}: {self.fields()}'
 
     def __repr__(self):
         return f'Frame(' \
@@ -231,6 +221,9 @@ class TagHeader:
     def version(self):
         return self._version
 
+    def flags(self):
+        return TagHeader.Flags(self._flags)
+
     def tag_size(self):
         """Overall size of the tag, including the header size.
 
@@ -238,14 +231,7 @@ class TagHeader:
         than the `tag size specification
         <http://id3.org/id3v2.3.0#ID3v2_header>`_ that excludes the header size.
         """
-        return len(self) + self._tag_size
-
-    def flags(self):
-        return TagHeader.Flags(self._flags)
-
-    def __len__(self):
-        """Size of the header. It's 10."""
-        return TagHeader.SIZE
+        return TagHeader.SIZE + self._tag_size
 
     def __repr__(self):
         major, minor = self.version()
@@ -269,7 +255,7 @@ class Tag:
 
     @staticmethod
     def read_from(path):
-        """Read ID3v2.3 tag from file"""
+        """Read full ID3v2.3 tag from file"""
         with open(path, 'rb') as mp3:
             header = TagHeader.read_from(mp3)
             frames = []
@@ -286,7 +272,6 @@ class Tag:
             return Tag(header, frames)
 
     def header(self):
-        """The header of this tag."""
         return self._header
 
     def __iter__(self):
