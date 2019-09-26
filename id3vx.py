@@ -4,6 +4,14 @@ from struct import unpack
 import sys
 
 ENCODING = "iso-8859-1"
+ENCODINGS = {
+    0: "iso-8859-1",
+    # TODO: I just guessed this, this won't work for sure
+    1: "utf-8-sig",
+    2: "utf_16_be",
+    3: "utf-8",
+}
+
 DECLARED_FRAMES = {
     "AENC": "Audio encryption",
     "APIC": "Attached picture",
@@ -119,12 +127,23 @@ class FrameHeader:
     def flags(self):
         return FrameHeader.Flags(self._flags)
 
-    def id(self):
+    def id(self) -> bytes:
         return self._id
 
     def size(self):
         """The size specified in the header, excluding the header size itself"""
         return self._size
+
+    def frame_type(self):
+        # TODO: this might be own class FrameId that handles this magic
+        if self.id().startswith(b"T"):
+            return TextFrame
+        elif self.id().startswith(b"W"):
+            return URLLinkFrame
+        elif self.id() == b'COMM':
+            return CommentFrame
+
+        return Frame
 
     def __repr__(self):
         return f'FrameHeader(id={self.id()},' \
@@ -143,8 +162,11 @@ class Frame:
     def read_from(mp3):
         """Read the next frame from an mp3 file object"""
         header = FrameHeader.read_from(mp3)
-
         return Frame(header, mp3.read(header.size())) if header else None
+
+    def __new__(cls, *args, **kwargs):
+        """Create instance of Frame subclass depending on the type"""
+        return super().__new__(args[0].frame_type())
 
     def __init__(self, header, fields):
         self._header = header
@@ -154,7 +176,7 @@ class Frame:
         return self._header
 
     def fields(self):
-        return self._fields.decode(ENCODING)
+        return self._fields
 
     def id(self):
         """The 4-letter frame id of this frame.
@@ -177,9 +199,41 @@ class Frame:
         return FrameHeader.SIZE + self.header().size()
 
     def __repr__(self):
-        return f'Frame(' \
+        return f'{type(self).__name__}(' \
                f'{repr(self.header())},' \
                f'fields="{self.fields()}",size={len(self)})'
+
+
+class TextFrame(Frame):
+    def fields(self):
+        fields = super().fields()
+        encoding = ENCODINGS.get(fields[0], ENCODING)
+
+        return fields[1:].decode(encoding)
+
+
+class URLLinkFrame(Frame):
+    def fields(self):
+        fields = super().fields()
+
+        encoding = ENCODINGS.get(fields[0], ENCODING)
+        description, comment = fields[1:].split(b"\0")
+
+        return f'[description {description.decode(encoding)}] ' \
+               f'{comment.decode(encoding)}'
+
+
+class CommentFrame(Frame):
+    def fields(self):
+        fields = super().fields()
+
+        encoding = ENCODINGS.get(fields[0], ENCODING)
+        language = fields[1:4].decode(encoding)
+        description, comment = fields[4:].split(b"\0")
+
+        return f'[language {language}]' \
+               f'[description {description.decode(encoding)}] ' \
+               f'{comment.decode(encoding)}'
 
 
 class TagHeader:
