@@ -236,6 +236,8 @@ class UserDefinedTextFrame(TextFrame):
         super().__init__(header, fields)
         description, text, *_ = fields[1:].rsplit(self.separator())
 
+        print(self.encoding())
+
         self._description = description
         self._text = text
 
