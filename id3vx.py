@@ -7,7 +7,7 @@ DEFAULT_ENCODING = "iso-8859-1"
 ENCODINGS = {
     0: "iso-8859-1",
     # TODO: I just guessed this, this won't work for sure
-    1: "utf-8-sig",
+    1: "utf_16",
     2: "utf_16_be",
     3: "utf-8",
 }
@@ -218,6 +218,9 @@ class TextFrame(Frame):
     def encoding(self):
         return ENCODINGS.get(super().fields()[0], DEFAULT_ENCODING)
 
+    def separator(self):
+        return b"\x00\x00" if self.encoding().startswith("utf_16") else b"\x00"
+
     def __str__(self):
         return self.text()
 
@@ -229,16 +232,16 @@ class UserDefinedURLLinkFrame(TextFrame):
     """
     def __init__(self, header, fields):
         super().__init__(header, fields)
-        description, url = super().fields()[1:].split(b"\0")
+        description, url = super().fields()[1:].split(self.separator(), 1)
 
-        self._description = description.decode(self.encoding())
-        self._url = url.decode(DEFAULT_ENCODING)
+        self._description = description
+        self._url = url
 
     def description(self):
-        return self._description
+        return self._description.decode(self.encoding())
 
     def url(self):
-        return self._url
+        return self._url.decode(DEFAULT_ENCODING)
 
     def __str__(self):
         return f'[description {self.description()}] {self.url()}'
@@ -252,19 +255,17 @@ class CommentFrame(TextFrame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        fields = fields[1:].decode(self.encoding())
-
-        self._language = fields[0:3]
-        self._description, self._comment = fields[3:].split("\0")
+        self._language = fields[1:4]
+        self._description, self._comment = fields[4:].split(self.separator(), 1)
 
     def language(self):
-        return self._language
+        return self._language.decode(DEFAULT_ENCODING)
 
     def description(self):
-        return self._description
+        return self._description.decode(self.encoding())
 
     def comment(self):
-        return self._comment
+        return self._comment.decode(self.encoding())
 
     def __str__(self):
         return f'[language {self.language()}]' \
