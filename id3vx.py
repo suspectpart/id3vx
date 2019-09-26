@@ -255,21 +255,32 @@ class Tag:
 
     @staticmethod
     def read_from(path):
-        """Read full ID3v2.3 tag from file"""
+        """Read full ID3v2.3 tag from mp3 file"""
         with open(path, 'rb') as mp3:
             header = TagHeader.read_from(mp3)
-            frames = []
-
-            while mp3.tell() < header.tag_size():
-                frame = Frame.read_from(mp3)
-
-                if not frame:
-                    # stop on first padding frame
-                    break
-
-                frames.append(frame)
+            frames = Tag._read_frames_from(mp3, header)
 
             return Tag(header, frames)
+
+    @staticmethod
+    def _read_frames_from(mp3, header):
+        """Read frames from mp3 file
+
+        Read consecutive frames up until tag size specified in the header.
+        Stops reading frames when an empty (padding) frame is encountered.
+        """
+        frames = []
+
+        while mp3.tell() < header.tag_size():
+            frame = Frame.read_from(mp3)
+
+            if frame:
+                frames.append(frame)
+            else:
+                # stop on first padding frame
+                break
+
+        return frames
 
     def header(self):
         return self._header
