@@ -3,7 +3,7 @@ from enum import IntFlag
 from struct import unpack
 import sys
 
-ENCODING = "iso-8859-1"
+DEFAULT_ENCODING = "iso-8859-1"
 ENCODINGS = {
     0: "iso-8859-1",
     # TODO: I just guessed this, this won't work for sure
@@ -127,7 +127,7 @@ class FrameHeader:
     def flags(self):
         return FrameHeader.Flags(self._flags)
 
-    def id(self) -> bytes:
+    def id(self):
         return self._id
 
     def size(self):
@@ -138,8 +138,8 @@ class FrameHeader:
         # TODO: this might be own class FrameId that handles this magic
         if self.id().startswith(b"T"):
             return TextFrame
-        elif self.id().startswith(b"W"):
-            return URLLinkFrame
+        elif self.id() == b"WXXX":
+            return UserDefinedURLLinkFrame
         elif self.id() == b'COMM':
             return CommentFrame
 
@@ -184,7 +184,7 @@ class Frame:
         See `specification <http://id3.org/id3v2.3.0#Declared_ID3v2_frames>`_
         for a full list.
         """
-        return self.header().id().decode(ENCODING)
+        return self.header().id().decode(DEFAULT_ENCODING)
 
     def name(self):
         """Human-readable name of a frame.
@@ -198,42 +198,78 @@ class Frame:
         """The overall size of the frame in bytes, including header."""
         return FrameHeader.SIZE + self.header().size()
 
+    def __str__(self):
+        return str(self.fields())
+
     def __repr__(self):
         return f'{type(self).__name__}(' \
                f'{repr(self.header())},' \
-               f'fields="{self.fields()}",size={len(self)})'
+               f'fields="{str(self)}",size={len(self)})'
 
 
 class TextFrame(Frame):
-    def fields(self):
-        fields = super().fields()
-        encoding = ENCODINGS.get(fields[0], ENCODING)
+    """A text frame
 
-        return fields[1:].decode(encoding)
+    Decodes all of the frame with the encoding read from the first byte.
+    """
+    def text(self):
+        return super().fields()[1:].decode(self.encoding())
 
+    def encoding(self):
+        return ENCODINGS.get(super().fields()[0], DEFAULT_ENCODING)
 
-class URLLinkFrame(Frame):
-    def fields(self):
-        fields = super().fields()
-
-        encoding = ENCODINGS.get(fields[0], ENCODING)
-        description, comment = fields[1:].split(b"\0")
-
-        return f'[description {description.decode(encoding)}] ' \
-               f'{comment.decode(encoding)}'
+    def __str__(self):
+        return self.text()
 
 
-class CommentFrame(Frame):
-    def fields(self):
-        fields = super().fields()
+class UserDefinedURLLinkFrame(TextFrame):
+    """A User Defined URL Frame
 
-        encoding = ENCODINGS.get(fields[0], ENCODING)
-        language = fields[1:4].decode(encoding)
-        description, comment = fields[4:].split(b"\0")
+    Reads comment and description from an already decoded TextFrame.
+    """
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+        description, url = super().fields()[1:].split(b"\0")
 
-        return f'[language {language}]' \
-               f'[description {description.decode(encoding)}] ' \
-               f'{comment.decode(encoding)}'
+        self._description = description.decode(self.encoding())
+        self._url = url.decode(DEFAULT_ENCODING)
+
+    def description(self):
+        return self._description
+
+    def url(self):
+        return self._url
+
+    def __str__(self):
+        return f'[description {self.description()}] {self.url()}'
+
+
+class CommentFrame(TextFrame):
+    """Comment Frame
+
+    Reads language, description and comment from an already decoded TextFrame.
+    """
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+
+        fields = fields[1:].decode(self.encoding())
+        description, comment = fields[3:].split("\0")
+
+        self._language = fields[0:3]
+        self._description = description
+        self._comment = comment
+
+    def language(self):
+        return self._language
+
+    def description(self):
+        return self._description
+
+    def comment(self):
+        return self._comment
+
+    def __str__(self):
+        return f'[language {self.language()}] [description {self.description()}] {self.comment()}'
 
 
 class TagHeader:
@@ -265,7 +301,7 @@ class TagHeader:
         return TagHeader(*unpack('>3sBBBl', mp3.read(TagHeader.SIZE)))
 
     def __init__(self, identifier, major, minor, flags, tag_size):
-        if identifier.decode(ENCODING) != TagHeader.ID3_IDENTIFIER:
+        if identifier.decode(DEFAULT_ENCODING) != TagHeader.ID3_IDENTIFIER:
             raise ValueError("No ID3v2.x Tag Header found.")
 
         self._version = (major, minor)
