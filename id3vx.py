@@ -253,11 +253,9 @@ class CommentFrame(TextFrame):
         super().__init__(header, fields)
 
         fields = fields[1:].decode(self.encoding())
-        description, comment = fields[3:].split("\0")
 
         self._language = fields[0:3]
-        self._description = description
-        self._comment = comment
+        self._description, self._comment = fields[3:].split("\0")
 
     def language(self):
         return self._language
@@ -269,7 +267,9 @@ class CommentFrame(TextFrame):
         return self._comment
 
     def __str__(self):
-        return f'[language {self.language()}] [description {self.description()}] {self.comment()}'
+        return f'[language {self.language()}]' \
+               f'[description {self.description()}] ' \
+               f'{self.comment()}'
 
 
 class TagHeader:
