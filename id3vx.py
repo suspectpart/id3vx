@@ -28,6 +28,14 @@ class Codec:
     def decode(self, byte_string):
         return byte_string.decode(self._codec)
 
+    def split(self, byte_string: bytes, count):
+        """Split and decode a string at the null byte \x00
+
+        If encoding is utf_16, two null bytes \x00\x00 are removed.
+        """
+        parts = byte_string.rsplit(self.separator())[:count]
+        return (self.decode(part) for part in parts)
+
     def __str__(self):
         return self._codec
 
@@ -236,11 +244,13 @@ class TextFrame(Frame):
 
     Decodes all of the frame with the encoding read from the first byte.
     """
-    def text(self):
-        return self.codec().decode(super().fields()[1:])
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
 
-    def codec(self):
-        return Codec(super().fields()[0])
+        self._codec = Codec(super().fields()[0])
+
+    def text(self):
+        return self._codec.decode(super().fields()[1:])
 
     def __str__(self):
         return self.text()
@@ -249,16 +259,16 @@ class TextFrame(Frame):
 class UserDefinedTextFrame(TextFrame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
-        description, text, *_ = fields[1:].rsplit(self.codec().separator())
+        description, text = self._codec.split(fields[1:], 2)
 
         self._description = description
         self._text = text
 
     def text(self):
-        return self.codec().decode(self._text)
+        return self._text
 
     def description(self):
-        return self.codec().decode(self._description)
+        return self._description
 
     def __str__(self):
         return f'[description {self.description()}] {self.text()}'
@@ -266,7 +276,7 @@ class UserDefinedTextFrame(TextFrame):
 
 class URLLinkFrame(Frame):
     def __str__(self):
-        return Codec().decode(self.fields())
+        return Codec.default().decode(self.fields())
 
 
 class UserDefinedURLLinkFrame(TextFrame):
@@ -274,18 +284,19 @@ class UserDefinedURLLinkFrame(TextFrame):
 
     Reads comment and description from an already decoded TextFrame.
     """
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
-        description, url, *_ = fields[1:].rsplit(self.codec().separator())
+        description, url = self._codec.split(fields[1:], 2)
 
         self._description = description
         self._url = url
 
     def description(self):
-        return self.codec().decode(self._description)
+        return self._description
 
     def url(self):
-        return self.codec().decode(self._url)
+        return self._url
 
     def __str__(self):
         return f'[description {self.description()}] {self.url()}'
@@ -296,20 +307,21 @@ class CommentFrame(TextFrame):
 
     Reads language, description and comment from an already decoded TextFrame.
     """
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._language = fields[1:4]
-        self._description, self._comment = fields[4:].split(self.codec().separator(), 1)
+        self._language = Codec.default().decode(fields[1:4])
+        self._description, self._comment = self._codec.split(fields[4:], 2)
 
     def language(self):
-        return Codec.default().decode(self._language)
+        return self._language
 
     def description(self):
-        return self.codec().decode(self._description)
+        return self._description
 
     def comment(self):
-        return self.codec().decode(self._comment)
+        return self._comment
 
     def __str__(self):
         return f'[language {self.language()}]' \
