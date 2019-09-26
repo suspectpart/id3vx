@@ -289,9 +289,8 @@ class Tag:
         """The header of this tag."""
         return self._header
 
-    def frames(self):
-        """All frames specified in this tag."""
-        return self._frames
+    def __iter__(self):
+        return iter(self._frames)
 
     def __len__(self):
         """The overall size of the tag in bytes, including header."""
@@ -306,4 +305,6 @@ if __name__ == "__main__":
     tag = Tag.read_from(path_to_mp3)
 
     print(tag)
-    print(*(repr(f) for f in tag.frames()), sep="\n")
+
+    for frame in tag:
+        print(repr(frame))
