@@ -42,12 +42,12 @@ class Frame:
 
     @staticmethod
     def read_from(mp3):
-        f_head = Frame.Header(*unpack('>4slh', mp3.read(10)))
+        frame_header = Frame.Header(*unpack('>4slh', mp3.read(10)))
 
-        if not f_head.size:
+        if not frame_header.size:
             return None
 
-        return Frame(f_head, mp3.read(f_head.size))
+        return Frame(frame_header, mp3.read(frame_header.size))
 
     def __str__(self):
         return f'{self.header().identifier}: {self.payload()}'
@@ -64,6 +64,17 @@ class TagHeader:
     <http://id3.org/id3v2.3.0#ID3v2_header>`_
     """
 
+    class Flags(IntFlag):
+        """
+        Represents the 1-byte tag flags.
+
+        See `ID3v2.3 tag header specification
+        http://id3.org/id3v2.3.0#ID3v2_header`_
+        """
+        Sync = 1 << 6
+        Extended = 1 << 5
+        Experimental = 1 << 4
+
     ID3_IDENTIFIER = "ID3"
     SIZE = 10
     Fields = namedtuple('TagHeader',
@@ -75,13 +86,19 @@ class TagHeader:
         if self.identifier() != TagHeader.ID3_IDENTIFIER:
             raise ValueError("No ID3v2.x Tag Header found.")
 
+    def tag_size(self):
+        return self.__fields.tag_size
+
+    def identifier(self):
+        return self.__fields.identifier.decode(ENCODING)
+
+    def flags(self):
+        return TagHeader.Flags(self.__fields.flags)
+
     def __len__(self):
         """Size of the header. It's 10."""
 
         return TagHeader.SIZE
-
-    def identifier(self):
-        return self.__fields.identifier.decode(ENCODING)
 
     @staticmethod
     def read_from(mp3):
@@ -94,30 +111,28 @@ class TagHeader:
 
 
 class Tag:
+    """An ID3v2.3 tag.
 
-    class Flags(IntFlag):
-        """
-        Represents the 1-byte header flags.
+    Represents a full ID3v2.3 tag, including a header, at least one frame
+    and maybe some padding.
 
-        See `ID3v2.3 tag header specification
-        http://id3.org/id3v2.3.0#ID3v2_header`_
-        """
-        Sync = 1 << 6
-        Extended = 1 << 5
-        Experimental = 1 << 4
+    See `ID3v2.3 tag header specification
+    http://id3.org/id3v2.3.0#ID3v2_overview`_
+    """
 
     def __init__(self, path_to_mp3):
         with open(path_to_mp3, 'rb') as mp3:
             self.__header = TagHeader.read_from(mp3)
             self.__frames = []
 
-            while True:
+            while mp3.tell() < len(self):
                 frame = Frame.read_from(mp3)
 
-                if not frame:
+                if frame:
+                    self.__frames.append(frame)
+                else:
+                    # stop if padding is encountered (empty frames)
                     break
-
-                self.__frames.append(frame)
 
     def header(self):
         return self.__header
@@ -125,8 +140,13 @@ class Tag:
     def frames(self):
         return self.__frames
 
+    def __len__(self):
+        """Overall size of the tag in bytes."""
+
+        return len(self.header()) + self.header().tag_size()
+
     def __repr__(self):
-        return repr(self.header())
+        return f"Tag(size={len(self)}, header={repr(self.header())})"
 
 
 if __name__ == "__main__":
@@ -134,5 +154,5 @@ if __name__ == "__main__":
 
     print(tag)
 
-    for frame in tag.frames():
-        print(frame)
+    for f in tag.frames():
+        print(f)
