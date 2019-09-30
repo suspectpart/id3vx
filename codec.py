@@ -58,8 +58,8 @@ class UTF16BECodec(Codec):
         super().__init__("utf_16_be", b'\x00\x00')
 
     def _split(self, byte_string):
-        # utf_16_be means high byte comes first and may be zero
-        # so it needs to be split from the left
+        # split from the left for big endian utf-16 because
+        # the higher byte comes first (left) and may be \x00
         return byte_string.split(self._separator)
 
 

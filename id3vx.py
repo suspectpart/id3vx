@@ -128,7 +128,6 @@ class FrameHeader:
         return self._size
 
     def frame_type(self):
-        # TODO: this might be own class FrameId that handles this magic
         if self.id() == b'TXXX':
             return UserDefinedTextFrame
         elif self.id() == b'WXXX':
