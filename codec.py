@@ -27,9 +27,8 @@ class Codec:
         """Split byte_string at separator and decode the parts"""
         parts = self._split(byte_string)
 
-        if (len(parts)) > 1 and not parts[-1]:
-            # remove empty trailing string
-            parts = parts[:-1]
+        if len(parts) > 1 and not parts[-1]:
+            parts.pop()  # remove trailing empty string
 
         return (self.decode(part) for part in parts)
 
