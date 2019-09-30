@@ -212,7 +212,7 @@ class TextFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._codec = Codec(super().fields()[0])
+        self._codec = Codec.get(super().fields()[0])
 
     def text(self):
         return self._codec.decode(super().fields()[1:])
@@ -224,10 +224,8 @@ class TextFrame(Frame):
 class UserDefinedTextFrame(TextFrame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
-        description, text = self._codec.split(fields[1:])
 
-        self._description = description
-        self._text = text
+        self._description, self._text = self._codec.split_decode(fields[1:])
 
     def text(self):
         return self._text
@@ -252,10 +250,8 @@ class UserDefinedURLLinkFrame(TextFrame):
 
     def __init__(self, header, fields):
         super().__init__(header, fields)
-        description, url = self._codec.split(fields[1:])
 
-        self._description = description
-        self._url = url
+        self._description, self._url = self._codec.split_decode(fields[1:])
 
     def description(self):
         return self._description
@@ -277,7 +273,7 @@ class CommentFrame(TextFrame):
         super().__init__(header, fields)
 
         self._language = Codec.default().decode(fields[1:4])
-        self._description, self._comment = self._codec.split(fields[4:])
+        self._description, self._comment = self._codec.split_decode(fields[4:])
 
     def language(self):
         return self._language
