@@ -1,43 +1,8 @@
 #!/usr/bin/env python3
+from codec import Codec
 from enum import IntFlag
 from struct import unpack
 import sys
-
-
-class Codec:
-    SEPARATOR = b'\x00'
-    ENCODINGS = {
-        0: "latin_1",
-        1: "utf_16",
-        2: "utf_16_be",
-        3: "utf-8",
-    }
-
-    def __init__(self, byte=0):
-        self._codec = Codec.ENCODINGS[byte]
-
-    def separator(self):
-        if self._codec.startswith("utf_16"):
-            return Codec.SEPARATOR * 2
-        return Codec.SEPARATOR
-
-    @staticmethod
-    def default():
-        return Codec()
-
-    def decode(self, byte_string):
-        return byte_string.decode(self._codec)
-
-    def split(self, byte_string: bytes, count):
-        """Split and decode a string at the null byte \x00
-
-        If encoding is utf_16, two null bytes \x00\x00 are removed.
-        """
-        parts = byte_string.rsplit(self.separator())[:count]
-        return (self.decode(part) for part in parts)
-
-    def __str__(self):
-        return self._codec
 
 
 DECLARED_FRAMES = {
@@ -259,7 +224,7 @@ class TextFrame(Frame):
 class UserDefinedTextFrame(TextFrame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
-        description, text = self._codec.split(fields[1:], 2)
+        description, text = self._codec.split(fields[1:])
 
         self._description = description
         self._text = text
@@ -287,7 +252,7 @@ class UserDefinedURLLinkFrame(TextFrame):
 
     def __init__(self, header, fields):
         super().__init__(header, fields)
-        description, url = self._codec.split(fields[1:], 2)
+        description, url = self._codec.split(fields[1:])
 
         self._description = description
         self._url = url
@@ -312,7 +277,7 @@ class CommentFrame(TextFrame):
         super().__init__(header, fields)
 
         self._language = Codec.default().decode(fields[1:4])
-        self._description, self._comment = self._codec.split(fields[4:], 2)
+        self._description, self._comment = self._codec.split(fields[4:])
 
     def language(self):
         return self._language
