@@ -6,7 +6,7 @@ class Codec:
     @staticmethod
     def default():
         """Default codec specified for id3v2.3 (Latin1 / ISO 8859-1)"""
-        return Latin1Codec()
+        return _CODECS.get(0)
 
     @staticmethod
     def get(key):
@@ -17,7 +17,7 @@ class Codec:
         2: UTF-16BE
         3: UTF-8
         """
-        return CODECS[key]
+        return _CODECS[key]
 
     def decode(self, byte_string):
         """Decode byte_string with given encoding"""
@@ -65,7 +65,7 @@ class UTF16Codec(Codec):
         super().__init__("utf_16", b'\x00\x00')
 
 
-CODECS = {
+_CODECS = {
     0: Latin1Codec(),
     1: UTF16Codec(),
     2: UTF16BECodec(),
