@@ -39,6 +39,9 @@ class Codec:
     def __str__(self):
         return self._encoding
 
+    def __eq__(self, other):
+        return str(self) == str(other)
+
 
 class Latin1Codec(Codec):
     def __init__(self):
