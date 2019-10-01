@@ -415,11 +415,11 @@ class Tag:
         while mp3.tell() < header.tag_size():
             frame = Frame.read_from(mp3)
 
-            if frame:
-                frames.append(frame)
-            else:
+            if not frame:
                 # stop on first padding frame
                 break
+
+            frames.append(frame)
 
         return frames
 
