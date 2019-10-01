@@ -207,6 +207,7 @@ class Frame:
                f'fields="{str(self)}",size={len(self)})'
 
     def __bytes__(self):
+        # TODO: serialize frame content
         return bytes(self.header())
 
 
@@ -436,12 +437,10 @@ class Tag:
         return f"Tag({repr(self.header())},size={len(self)})"
 
     def __bytes__(self):
-        bytestring = bytes(self.header())
+        header = bytes(self.header())
+        frames = b"".join(bytes(frame) for frame in self)
 
-        for frame in self:
-            bytestring += bytes(frame)
-
-        return bytestring
+        return header + frames
 
 
 if __name__ == "__main__":
