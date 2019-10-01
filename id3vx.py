@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 from codec import Codec
 from enum import IntFlag
-from struct import unpack
+from struct import unpack, pack
 import sys
-
 
 DECLARED_FRAMES = {
     "AENC": "Audio encryption",
@@ -148,6 +147,9 @@ class FrameHeader:
                f'size={self.size()},' \
                f'flags={str(self.flags())})'
 
+    def __bytes__(self):
+        return pack('>4slh', self.id(), self.size(), self.flags())
+
 
 class Frame:
     """An ID3v2.3 frame.
@@ -204,6 +206,9 @@ class Frame:
                f'{repr(self.header())},' \
                f'fields="{str(self)}",size={len(self)})'
 
+    def __bytes__(self):
+        return bytes(self.header())
+
 
 class PrivateFrame(Frame):
     def __init__(self, header, fields):
@@ -228,6 +233,7 @@ class TextFrame(Frame):
 
     Decodes all of the frame with the encoding read from the first byte.
     """
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -366,6 +372,13 @@ class TagHeader:
         return f"TagHeader(major={major},minor={minor}," \
                f"flags={self.flags()},tag_size={self._tag_size})"
 
+    def __bytes__(self):
+        return pack('>3sBBBl',
+                    bytes(TagHeader.ID3_IDENTIFIER, "latin1"),
+                    *self.version(),
+                    self.flags(),
+                    self.tag_size() - TagHeader.SIZE)
+
 
 class Tag:
     """An ID3v2.3 tag.
@@ -422,6 +435,14 @@ class Tag:
     def __repr__(self):
         return f"Tag({repr(self.header())},size={len(self)})"
 
+    def __bytes__(self):
+        bytestring = bytes(self.header())
+
+        for frame in self:
+            bytestring += bytes(frame)
+
+        return bytestring
+
 
 if __name__ == "__main__":
     path_to_mp3 = sys.argv[1]
@@ -429,3 +450,4 @@ if __name__ == "__main__":
 
     print(tag)
     print(*(repr(frame) for frame in tag), sep="\n")
+    print(bytes(tag))
