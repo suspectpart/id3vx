@@ -50,7 +50,7 @@ class FrameHeader:
         return self._id
 
     def size(self):
-        """The size specified in the header, excluding the header size itself"""
+        """Overall frame size excluding the 10 bytes header size"""
         return self._size
 
     def __repr__(self):
@@ -78,8 +78,8 @@ class Frame:
     def __new__(cls, *args, **kwargs):
         """Create instance of Frame subclass depending on the type"""
         frame_id = args[0].id()
-        frame_type = next(f for f in FRAME_PRECEDENCE if f.represents(frame_id))
-        return super().__new__(frame_type)
+        frame_cls = next(f for f in FRAME_PRECEDENCE if f.represents(frame_id))
+        return super().__new__(frame_cls)
 
     def __init__(self, header, fields):
         self._header = header

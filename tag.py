@@ -52,7 +52,7 @@ class TagHeader:
 
         For convenience reasons, tag size here includes the header size, other
         than the `tag size specification
-        <http://id3.org/id3v2.3.0#ID3v2_header>`_ that excludes the header size.
+        <http://id3.org/id3v2.3.0#ID3v2_header>`_ that excludes the header size
         """
         return TagHeader.SIZE + self._tag_size
 
