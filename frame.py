@@ -1,5 +1,7 @@
-from enum import IntFlag
+import datetime
 import struct
+from collections import namedtuple
+from enum import IntFlag
 
 from codec import Codec
 
@@ -56,6 +58,8 @@ class FrameHeader:
             return URLLinkFrame
         elif self.id() == b'PRIV':
             return PrivateFrame
+        elif self.id() == b'CHAP':
+            return ChapterFrame
         elif self.id() == b'COMM':
             return CommentFrame
         elif self.id().startswith(b'T'):
@@ -234,6 +238,43 @@ class CommentFrame(TextFrame):
         return f'[language {self.language()}]' \
                f'[description {self.description()}] ' \
                f'{self.comment()}'
+
+
+class ChapterFrame(Frame):
+    """Chapter Frame (CHAP)"""
+
+    Timings = namedtuple("Timings", "start, end, start_offset, end_offset")
+
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+
+        element_id, remainder = Codec.default().split(fields, 1)
+
+        self._element_id = Codec.default().decode(element_id)
+        self._timings = self.Timings(*struct.unpack('>llll', remainder))
+
+    def element_id(self):
+        return self._element_id
+
+    def timings(self):
+        return self._timings
+
+    def __str__(self):
+        start = datetime.timedelta(milliseconds=self._timings.start)
+        end = datetime.timedelta(milliseconds=self._timings.end)
+
+        return f'[{self._element_id}] ' \
+               f'start: {start} ' \
+               f'end: {end} ' \
+               f'start_offset: {self._timings.start_offset} ' \
+               f'end_offset: {self._timings.end_offset} '
+
+    def __bytes__(self):
+        header = bytes(self.header())
+        element_id = Codec.default().encode(self._element_id)
+        timings = struct.pack('>llll', *self.timings())
+
+        return header + element_id + timings
 
 
 DECLARED_FRAMES = {

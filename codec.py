@@ -22,17 +22,22 @@ class Codec:
         """Decode byte_string with given encoding"""
         return byte_string.decode(self.encoding)
 
+    def encode(self, byte_string):
+        """Decode byte_string with given encoding"""
+        return byte_string.encode(self.encoding) + self.separator
+
+    def split(self, byte_string, maxsplit=None):
+        """Splits a string at separator"""
+        return byte_string.split(self.separator, maxsplit or -1)
+
     def split_decode(self, byte_string: bytes):
         """Split byte_string at separator and decode the parts"""
-        parts = self._split(byte_string)
+        parts = self.split(byte_string)
 
         if len(parts) > 1 and not parts[-1]:
             parts.pop()  # remove trailing empty string
 
         return (self.decode(part) for part in parts)
-
-    def _split(self, byte_string):
-        return byte_string.split(self.separator)
 
     def __str__(self):
         return self.encoding
@@ -60,10 +65,16 @@ class UTF16Codec(Codec):
     encoding = "utf_16"
     separator = b'\x00\x00'
 
-    def _split(self, byte_string):
-        # right split because UTF-16LE may cause three successive null bytes
-        # e.g. the string "abc" is encoded as b'a\x00b\x00\c\x00\x00\x00'
-        return byte_string.rsplit(self.separator)
+    def split(self, byte_string, maxsplit=None):
+        # rsplit because UTF-16LE can cause three successive null bytes
+        # e.g. "abc" is encoded as b'a\x00b\x00\c\x00\x00\x00'
+        parts = byte_string.rsplit(self.separator)
+
+        if not maxsplit:
+            return parts
+
+        # pick maxsplit parts and join the rest back together
+        return [*parts[:maxsplit], self.separator.join(parts[maxsplit:])]
 
 
 _CODECS = {

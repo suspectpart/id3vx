@@ -155,3 +155,19 @@ class CodecUtf16Tests(unittest.TestCase):
         self.assertEqual(len(parts), 2)
         self.assertEqual(parts[0], 'a')
         self.assertEqual(parts[1], 'b')
+
+    def test_splits_tokens_with_maxsplit(self):
+        """Splits a string maxsplit times"""
+        # Arrange
+        byte_string = b'a\x00\x00\x00b\x00\x00\x00\x0a\xcf\xca'
+
+        # System under test
+        codec = UTF16Codec()
+
+        # Act
+        parts = list(codec.split(byte_string, 1))
+
+        # Assert
+        self.assertEqual(len(parts), 2)
+        self.assertEqual(parts[0], b'a\x00')
+        self.assertEqual(parts[1], b'b\x00\x00\x00\x0a\xcf\xca')
