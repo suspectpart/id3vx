@@ -53,24 +53,6 @@ class FrameHeader:
         """The size specified in the header, excluding the header size itself"""
         return self._size
 
-    def frame_type(self):
-        if self.id() == b'TXXX':
-            return UserDefinedTextFrame
-        elif self.id() == b'WXXX':
-            return UserDefinedURLLinkFrame
-        elif self.id() == b'WOAR':
-            return URLLinkFrame
-        elif self.id() == b'PRIV':
-            return PrivateFrame
-        elif self.id() == b'CHAP':
-            return ChapterFrame
-        elif self.id() == b'COMM':
-            return CommentFrame
-        elif self.id().startswith(b'T'):
-            return TextFrame
-
-        return Frame
-
     def __repr__(self):
         return f'FrameHeader(id={self.id()},' \
                f'size={self.size()},' \
@@ -95,7 +77,9 @@ class Frame:
 
     def __new__(cls, *args, **kwargs):
         """Create instance of Frame subclass depending on the type"""
-        return super().__new__(args[0].frame_type())
+        frame_id = args[0].id()
+        frame_type = next(f for f in FRAME_PRECEDENCE if f.represents(frame_id))
+        return super().__new__(frame_type)
 
     def __init__(self, header, fields):
         self._header = header
@@ -145,6 +129,10 @@ class PrivateFrame(Frame):
 
         self._owner, self._data = Codec.default().split(fields, 1)
 
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'PRIV'
+
     def owner(self):
         return Codec.default().decode(self._owner)
 
@@ -167,6 +155,10 @@ class TextFrame(Frame):
         self._codec = Codec.get(super().fields()[0])
         self._text = super().fields()[1:]
 
+    @staticmethod
+    def represents(identifier):
+        return identifier.startswith(b'T')
+
     def text(self):
         return self._codec.decode(self._text)
 
@@ -179,6 +171,10 @@ class UserDefinedTextFrame(TextFrame):
         super().__init__(header, fields)
 
         self._description, self._text = self._codec.split_decode(fields[1:])
+
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'TXXX'
 
     def text(self):
         return self._text
@@ -194,6 +190,10 @@ class URLLinkFrame(Frame):
     def __str__(self):
         return Codec.default().decode(self.fields())
 
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'WOAR'
+
 
 class UserDefinedURLLinkFrame(TextFrame):
     """A User Defined URL Frame (WXXX)
@@ -205,6 +205,10 @@ class UserDefinedURLLinkFrame(TextFrame):
         super().__init__(header, fields)
 
         self._description, self._url = self._codec.split_decode(fields[1:])
+
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'WXXX'
 
     def description(self):
         return self._description
@@ -227,6 +231,10 @@ class CommentFrame(TextFrame):
 
         self._language = Codec.default().decode(fields[1:4])
         self._description, self._comment = self._codec.split_decode(fields[4:])
+
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'COMM'
 
     def language(self):
         return self._language
@@ -256,6 +264,10 @@ class ChapterFrame(Frame):
         self._element_id = Codec.default().decode(element_id)
         self._timings = self.Timings(*struct.unpack('>llll', remainder[:16]))
         self._sub_frames = remainder[16:]
+
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'CHAP'
 
     def sub_frames(self):
         """CHAP frames include 0-2 sub frames (of type TIT2 and TIT3)"""
@@ -372,3 +384,14 @@ DECLARED_FRAMES = {
     "WPUB": "Publishers official webpage",
     "WXXX": "User defined URL link frame",
 }
+
+FRAME_PRECEDENCE = [
+    UserDefinedTextFrame,
+    UserDefinedURLLinkFrame,
+    URLLinkFrame,
+    PrivateFrame,
+    ChapterFrame,
+    CommentFrame,
+    TextFrame,
+    Frame,
+]
