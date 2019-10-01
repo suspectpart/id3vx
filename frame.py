@@ -2,6 +2,7 @@ import datetime
 import struct
 from collections import namedtuple
 from enum import IntFlag
+from io import BytesIO
 
 from codec import Codec
 
@@ -31,8 +32,11 @@ class FrameHeader:
 
     @staticmethod
     def read_from(mp3):
-        identifier, size, flags = struct.unpack('>4slh', mp3.read(10))
-        return FrameHeader(identifier, size, flags) if size else None
+        try:
+            identifier, size, flags = struct.unpack('>4slh', mp3.read(10))
+            return FrameHeader(identifier, size, flags) if size else None
+        except struct.error:
+            return None
 
     def __init__(self, identifier, size, flags):
         self._id = identifier
@@ -139,12 +143,10 @@ class PrivateFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        # TODO: can this be integrated with the codec?
-        owner, self._data = self.fields().split(b'\x00', 1)
-        self._owner = Codec.default().decode(owner)
+        self._owner, self._data = Codec.default().split(fields, 1)
 
     def owner(self):
-        return self._owner
+        return Codec.default().decode(self._owner)
 
     def data(self):
         return self._data
@@ -163,9 +165,10 @@ class TextFrame(Frame):
         super().__init__(header, fields)
 
         self._codec = Codec.get(super().fields()[0])
+        self._text = super().fields()[1:]
 
     def text(self):
-        return self._codec.decode(super().fields()[1:])
+        return self._codec.decode(self._text)
 
     def __str__(self):
         return self.text()
@@ -193,7 +196,7 @@ class URLLinkFrame(Frame):
 
 
 class UserDefinedURLLinkFrame(TextFrame):
-    """A User Defined URL Frame
+    """A User Defined URL Frame (WXXX)
 
     Reads comment and description from an already decoded TextFrame.
     """
@@ -214,7 +217,7 @@ class UserDefinedURLLinkFrame(TextFrame):
 
 
 class CommentFrame(TextFrame):
-    """Comment Frame
+    """Comment Frame (COMM)
 
     Reads language, description and comment from an already decoded TextFrame.
     """
@@ -251,30 +254,45 @@ class ChapterFrame(Frame):
         element_id, remainder = Codec.default().split(fields, 1)
 
         self._element_id = Codec.default().decode(element_id)
-        self._timings = self.Timings(*struct.unpack('>llll', remainder))
+        self._timings = self.Timings(*struct.unpack('>llll', remainder[:16]))
+        self._sub_frames = remainder[16:]
+
+    def sub_frames(self):
+        """CHAP frames include 0-2 sub frames (of type TIT2 and TIT3)"""
+        with BytesIO(self._sub_frames) as io:
+            frames = [Frame.read_from(io), Frame.read_from(io)]
+
+        return (f for f in frames if f)
 
     def element_id(self):
         return self._element_id
 
-    def timings(self):
-        return self._timings
+    def start(self):
+        return datetime.timedelta(milliseconds=self._timings.start)
+
+    def end(self):
+        return datetime.timedelta(milliseconds=self._timings.end)
+
+    def offset_start(self):
+        return self._timings.start_offset
+
+    def offset_end(self):
+        return self._timings.end_offset
 
     def __str__(self):
-        start = datetime.timedelta(milliseconds=self._timings.start)
-        end = datetime.timedelta(milliseconds=self._timings.end)
-
         return f'[{self._element_id}] ' \
-               f'start: {start} ' \
-               f'end: {end} ' \
-               f'start_offset: {self._timings.start_offset} ' \
-               f'end_offset: {self._timings.end_offset} '
+               f'start: {self.start()} ' \
+               f'end: {self.end()} ' \
+               f'start_offset: {self.offset_start()} ' \
+               f'end_offset: {self.offset_end()} ' \
+               f'sub_frames: {" ".join(repr(f) for f in self.sub_frames())}'
 
     def __bytes__(self):
         header = bytes(self.header())
         element_id = Codec.default().encode(self._element_id)
-        timings = struct.pack('>llll', *self.timings())
+        timings = struct.pack('>llll', *self._timings)
 
-        return header + element_id + timings
+        return header + element_id + timings + self._sub_frames
 
 
 DECLARED_FRAMES = {
