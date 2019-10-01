@@ -23,9 +23,9 @@ class FrameHeader:
         <http://id3.org/id3v2.3.0#Frame_header_flags>`_
         """
 
-        TagAlterPreservation = 1 << 14
-        FileAlterPreservation = 1 << 13
-        ReadOnly = 1 << 12
+        TagAlterPreservation = 1 << 15
+        FileAlterPreservation = 1 << 14
+        ReadOnly = 1 << 13
         Compression = 1 << 7
         Encryption = 1 << 6
         GroupingIdentity = 1 << 5
@@ -33,7 +33,7 @@ class FrameHeader:
     @classmethod
     def read_from(cls, mp3):
         try:
-            identifier, size, flags = struct.unpack('>4slh', mp3.read(10))
+            identifier, size, flags = struct.unpack('>4sLH', mp3.read(10))
             return cls(identifier, size, flags) if size else None
         except struct.error:
             return None
@@ -59,7 +59,7 @@ class FrameHeader:
                f'flags={str(self.flags())})'
 
     def __bytes__(self):
-        return struct.pack('>4slh', self.id(), self.size(), self.flags())
+        return struct.pack('>4sLH', self.id(), self.size(), int(self.flags()))
 
 
 class Frame:
@@ -263,7 +263,7 @@ class ChapterFrame(Frame):
         element_id, remainder = Codec.default().split(fields, 1)
 
         self._element_id = Codec.default().decode(element_id)
-        self._timings = self.Timings(*struct.unpack('>llll', remainder[:16]))
+        self._timings = self.Timings(*struct.unpack('>LLLL', remainder[:16]))
         self._sub_frames = remainder[16:]
 
     @staticmethod
@@ -303,7 +303,7 @@ class ChapterFrame(Frame):
     def __bytes__(self):
         header = bytes(self.header())
         element_id = Codec.default().encode(self._element_id)
-        timings = struct.pack('>llll', *self._timings)
+        timings = struct.pack('>LLLL', *self._timings)
 
         return header + element_id + timings + self._sub_frames
 

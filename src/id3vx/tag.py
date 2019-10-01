@@ -16,6 +16,7 @@ class TagHeader:
     <http://id3.org/id3v2.3.0#ID3v2_header>`_
     """
     ID3_IDENTIFIER = "ID3"
+    MEMORY_LAYOUT = '>3sBBBL'
     SIZE = 10
 
     class Flags(IntFlag):
@@ -31,7 +32,7 @@ class TagHeader:
 
     @classmethod
     def read_from(cls, mp3):
-        return cls(*struct.unpack('>3sBBBl', mp3.read(TagHeader.SIZE)))
+        return cls(*struct.unpack(TagHeader.MEMORY_LAYOUT, mp3.read(TagHeader.SIZE)))
 
     def __init__(self, identifier, major, minor, flags, tag_size):
         if Codec.default().decode(identifier) != TagHeader.ID3_IDENTIFIER:
@@ -63,7 +64,7 @@ class TagHeader:
                f"flags={self.flags()},tag_size={self._tag_size})"
 
     def __bytes__(self):
-        return struct.pack('>3sBBBl',
+        return struct.pack(TagHeader.MEMORY_LAYOUT,
                            bytes(TagHeader.ID3_IDENTIFIER, "latin1"),
                            *self.version(),
                            self.flags(),
