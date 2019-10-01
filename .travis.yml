@@ -11,9 +11,12 @@ install:
   - pip install nose
   - pip install coverage
   - pip install flake8
+  - pip install coveralls
 
 script:
   - make lint
-  - make test
+  - make cover
+
+after_script: coveralls
 
 

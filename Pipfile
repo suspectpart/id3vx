@@ -9,6 +9,7 @@ nose = "*"
 coverage = "*"
 
 [packages]
+coveralls = "*"
 
 [requires]
 python_version = "3.7"
