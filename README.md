@@ -1,4 +1,3 @@
-# Status
 ![status](https://travis-ci.org/suspectpart/id3vx.svg?branch=master)
 
 # What is this?
