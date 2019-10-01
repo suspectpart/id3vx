@@ -1,7 +1,6 @@
 class Codec:
-    def __init__(self, encoding, separator):
-        self._encoding = encoding
-        self._separator = separator
+    encoding: str
+    separator: bytes
 
     @staticmethod
     def default():
@@ -21,7 +20,7 @@ class Codec:
 
     def decode(self, byte_string):
         """Decode byte_string with given encoding"""
-        return byte_string.decode(self._encoding)
+        return byte_string.decode(self.encoding)
 
     def split_decode(self, byte_string: bytes):
         """Split byte_string at separator and decode the parts"""
@@ -33,38 +32,38 @@ class Codec:
         return (self.decode(part) for part in parts)
 
     def _split(self, byte_string):
-        return byte_string.rsplit(self._separator)
+        return byte_string.split(self.separator)
 
     def __str__(self):
-        return self._encoding
+        return self.encoding
 
     def __eq__(self, other):
         return str(self) == str(other)
 
 
 class Latin1Codec(Codec):
-    def __init__(self):
-        super().__init__("latin1", b'\x00')
+    encoding = "latin1"
+    separator = b'\x00'
 
 
 class UTF8Codec(Codec):
-    def __init__(self):
-        super().__init__("utf_8", b'\x00')
+    encoding = "utf_8"
+    separator = b'\x00'
 
 
 class UTF16BECodec(Codec):
-    def __init__(self):
-        super().__init__("utf_16_be", b'\x00\x00')
-
-    def _split(self, byte_string):
-        # split from the left for big endian utf-16 because
-        # the higher byte comes first (left) and may be \x00
-        return byte_string.split(self._separator)
+    encoding = "utf_16_be"
+    separator = b'\x00\x00'
 
 
 class UTF16Codec(Codec):
-    def __init__(self):
-        super().__init__("utf_16", b'\x00\x00')
+    encoding = "utf_16"
+    separator = b'\x00\x00'
+
+    def _split(self, byte_string):
+        # right split because UTF-16LE may cause three successive null bytes
+        # e.g. the string "abc" is encoded as b'a\x00b\x00\c\x00\x00\x00'
+        return byte_string.rsplit(self.separator)
 
 
 _CODECS = {
