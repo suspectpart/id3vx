@@ -207,8 +207,7 @@ class Frame:
                f'fields="{str(self)}",size={len(self)})'
 
     def __bytes__(self):
-        # TODO: serialize frame content
-        return bytes(self.header())
+        return bytes(self.header()) + bytes(self.fields())
 
 
 class PrivateFrame(Frame):
@@ -439,8 +438,9 @@ class Tag:
     def __bytes__(self):
         header = bytes(self.header())
         frames = b"".join(bytes(frame) for frame in self)
+        padding = self.header().tag_size() - len(frames)
 
-        return header + frames
+        return header + frames + b'\x00' * padding
 
 
 if __name__ == "__main__":
@@ -449,4 +449,5 @@ if __name__ == "__main__":
 
     print(tag)
     print(*(repr(frame) for frame in tag), sep="\n")
+    print()
     print(bytes(tag))
