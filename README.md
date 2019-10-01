@@ -1,3 +1,6 @@
+# Status
+![status](https://travis-ci.org/suspectpart/id3vx.svg?branch=master)
+
 # What is this?
 id3vx reads ID3 Tags of version 2.x. It is a fun project, if you need a serious library, consider using eyed3.
 
