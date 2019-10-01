@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/suspectpart/id3vx.svg?branch=master)](https://travis-ci.org/suspectpart/id3vx)
-[![Coverage Status](https://coveralls.io/repos/github/suspectpart/id3vx/badge.svg?branch=master)](https://coveralls.io/github/suspectpart/id3vx?branch=master)
+[![Build Status][build-badge]][build-link]
+[![Coverage Status][cov-badge]][cov-link]
 
 # What is this?
 id3vx reads ID3 Tags of version 2.x. It is a fun project, if you need a serious library, consider using eyed3.
@@ -11,3 +11,8 @@ $ ./id3vx.py examples/file_example_MP3_700KB.mp3
 
 # Examples
 The example files are all modifications from [this file](https://file-examples.com/wp-content/uploads/2017/11/file_example_MP3_700KB.mp3)  taken from [https://file-examples.com/](https://file-examples.com/) which offers sample files without any copyright restrictions. 
+
+[build-badge]: https://travis-ci.org/suspectpart/id3vx.svg?branch=master
+[build-link]: https://travis-ci.org/suspectpart/id3vx
+[cov-badge]: https://coveralls.io/repos/github/suspectpart/id3vx/badge.svg?branch=master
+[cov-link]: https://coveralls.io/github/suspectpart/id3vx?branch=master
