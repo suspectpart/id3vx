@@ -1,5 +1,6 @@
-![status](https://travis-ci.org/suspectpart/id3vx.svg?branch=master)
+[![Build Status](https://travis-ci.org/suspectpart/id3vx.svg?branch=master)](https://travis-ci.org/suspectpart/id3vx)
 [![Coverage Status](https://coveralls.io/repos/github/suspectpart/id3vx/badge.svg?branch=master)](https://coveralls.io/github/suspectpart/id3vx?branch=master)
+
 # What is this?
 id3vx reads ID3 Tags of version 2.x. It is a fun project, if you need a serious library, consider using eyed3.
 
