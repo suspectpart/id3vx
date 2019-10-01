@@ -1,38 +1,23 @@
 import unittest
 
-from src.codec import UTF8Codec
+from id3vx.codec import Latin1Codec
 
 
-class UTF8CodecTests(unittest.TestCase):
+class CodecLatin1Tests(unittest.TestCase):
     def test_decodes_string(self):
-        """Decodes a string using UTF-8 encoding"""
+        """Decodes a string using Latin1 encoding"""
         # Arrange
-        byte_poop = b'\xf0\x9f\x92\xa9'
-        actual_poop = '💩'
+        latin1_byte_string = b'abc'
+        expected_string = 'abc'
 
         # System under test
-        codec = UTF8Codec()
+        codec = Latin1Codec()
 
         # Act
-        decoded_poop = codec.decode(byte_poop)
+        string = codec.decode(latin1_byte_string)
 
         # Assert
-        self.assertEqual(decoded_poop, actual_poop)
-
-    def test_encodes_string(self):
-        """Decodes a string using UTF-8 encoding"""
-        # Arrange
-        byte_poop = b'\xf0\x9f\x92\xa9\x00'
-        actual_poop = '💩'
-
-        # System under test
-        codec = UTF8Codec()
-
-        # Act
-        encoded_poop = codec.encode(actual_poop)
-
-        # Assert
-        self.assertEqual(encoded_poop, byte_poop)
+        self.assertEqual(string, expected_string)
 
     def test_split_empty_string(self):
         """Splits an empty string to an empty string"""
@@ -40,7 +25,7 @@ class UTF8CodecTests(unittest.TestCase):
         byte_string = b''
 
         # System under test
-        codec = UTF8Codec()
+        codec = Latin1Codec()
 
         # Act
         parts = list(codec.split_decode(byte_string))
@@ -55,7 +40,7 @@ class UTF8CodecTests(unittest.TestCase):
         byte_string = b'\x00'
 
         # System under test
-        codec = UTF8Codec()
+        codec = Latin1Codec()
 
         # Act
         parts = list(codec.split_decode(byte_string))
@@ -70,7 +55,7 @@ class UTF8CodecTests(unittest.TestCase):
         byte_string = b'\x00\x00'
 
         # System under test
-        codec = UTF8Codec()
+        codec = Latin1Codec()
 
         # Act
         parts = list(codec.split_decode(byte_string))
@@ -86,7 +71,7 @@ class UTF8CodecTests(unittest.TestCase):
         byte_string = b'a\x00'
 
         # System under test
-        codec = UTF8Codec()
+        codec = Latin1Codec()
 
         # Act
         parts = list(codec.split_decode(byte_string))
@@ -101,7 +86,7 @@ class UTF8CodecTests(unittest.TestCase):
         byte_string = b'a\x00b\x00'
 
         # System under test
-        codec = UTF8Codec()
+        codec = Latin1Codec()
 
         # Act
         parts = list(codec.split_decode(byte_string))
@@ -111,23 +96,21 @@ class UTF8CodecTests(unittest.TestCase):
         self.assertEqual(parts[0], 'a')
         self.assertEqual(parts[1], 'b')
 
-    def test_split_two_tokens_unicode(self):
-        """Splits a string containing two null-terminated tokens"""
+    def test_split_two_tokens_omitted_terminator(self):
+        """Splits a string containing a non null-terminated last token"""
         # Arrange
-        special_char = "Ͻ"
-        encoded = special_char.encode("utf-8")
-        byte_string = encoded + b'\x00' + encoded + b'\x00'
+        byte_string = b'a\x00b'
 
         # System under test
-        codec = UTF8Codec()
+        codec = Latin1Codec()
 
         # Act
         parts = list(codec.split_decode(byte_string))
 
         # Assert
         self.assertEqual(len(parts), 2)
-        self.assertEqual(parts[0], special_char)
-        self.assertEqual(parts[1], special_char)
+        self.assertEqual(parts[0], 'a')
+        self.assertEqual(parts[1], 'b')
 
     def test_splits_tokens_with_maxsplit(self):
         """Splits a string maxsplit times"""
@@ -135,7 +118,7 @@ class UTF8CodecTests(unittest.TestCase):
         byte_string = b'a\x00b\x00\x00\x00x0a\xcf\xca'
 
         # System under test
-        codec = UTF8Codec()
+        codec = Latin1Codec()
 
         # Act
         parts = list(codec.split(byte_string, 1))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 
-from src.tag import Tag
+from id3vx.tag import Tag
 
 if __name__ == "__main__":
     tag = Tag.read_from(sys.argv[1])

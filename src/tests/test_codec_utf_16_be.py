@@ -1,6 +1,6 @@
 import unittest
 
-from src.codec import UTF16BECodec
+from id3vx.codec import UTF16BECodec
 
 
 class CodecUtf16BeTests(unittest.TestCase):

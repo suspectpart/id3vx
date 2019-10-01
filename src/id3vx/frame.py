@@ -4,7 +4,7 @@ from collections import namedtuple
 from enum import IntFlag
 from io import BytesIO
 
-from src.codec import Codec
+from .codec import Codec
 
 
 class FrameHeader:
