@@ -1,6 +1,9 @@
 [![Build Status][build-badge]][build-link]
 [![Coverage Status][cov-badge]][cov-link]
 [![License: MIT][mit-badge]][mit-license]
+[![Maintenance][maintenance-badge]][no-time]
+[![Useful][useful-badge]][eyed3]
+
 # What is this?
 id3vx parses ID3 Tags of version 2.x (actually, only 2.3 for now). It can mostly dump them.
 
@@ -34,6 +37,9 @@ common tools write ID3v2.x tags.
 [cov-link]: https://coveralls.io/github/suspectpart/id3vx?branch=master
 [mit-badge]: https://img.shields.io/badge/License-MIT-yellow.svg
 [mit-license]: https://opensource.org/licenses/MIT
+[useful-badge]: https://img.shields.io/badge/Useful%3F-not%20really-red.svg
+[maintenance-badge]: https://img.shields.io/badge/Maintained%3F-maybe-yellow.svg
+[no-time]: https://www.youtube.com/watch?v=6gLMSf4afzo
 [eyed3]: https://eyed3.readthedocs.io/en/latest/
 [elegant-objects]: https://www.yegor256.com/elegant-objects.html
 [yegor-bugayenko]: https://www.yegor256.com/
