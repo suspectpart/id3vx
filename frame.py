@@ -30,11 +30,11 @@ class FrameHeader:
         Encryption = 1 << 6
         GroupingIdentity = 1 << 5
 
-    @staticmethod
-    def read_from(mp3):
+    @classmethod
+    def read_from(cls, mp3):
         try:
             identifier, size, flags = struct.unpack('>4slh', mp3.read(10))
-            return FrameHeader(identifier, size, flags) if size else None
+            return cls(identifier, size, flags) if size else None
         except struct.error:
             return None
 
@@ -69,17 +69,18 @@ class Frame:
     <http://id3.org/id3v2.3.0#ID3v2_frame_overview>`_
     """
 
-    @staticmethod
-    def read_from(mp3):
+    @classmethod
+    def read_from(cls, mp3):
         """Read the next frame from an mp3 file object"""
         header = FrameHeader.read_from(mp3)
-        return Frame(header, mp3.read(header.size())) if header else None
 
-    def __new__(cls, *args, **kwargs):
-        """Create instance of Frame subclass depending on the type"""
-        frame_id = args[0].id()
-        frame_cls = next(f for f in FRAME_PRECEDENCE if f.represents(frame_id))
-        return super().__new__(frame_cls)
+        if not header:
+            return None
+
+        fields = mp3.read(header.size())
+        cls_ = next(f for f in FRAMES_PIPE if f.represents(header.id()))
+
+        return cls_(header, fields)
 
     def __init__(self, header, fields):
         self._header = header
@@ -385,7 +386,7 @@ DECLARED_FRAMES = {
     "WXXX": "User defined URL link frame",
 }
 
-FRAME_PRECEDENCE = [
+FRAMES_PIPE = [
     UserDefinedTextFrame,
     UserDefinedURLLinkFrame,
     URLLinkFrame,

@@ -29,9 +29,9 @@ class TagHeader:
         Extended = 1 << 5
         Experimental = 1 << 4
 
-    @staticmethod
-    def read_from(mp3):
-        return TagHeader(*struct.unpack('>3sBBBl', mp3.read(TagHeader.SIZE)))
+    @classmethod
+    def read_from(cls, mp3):
+        return cls(*struct.unpack('>3sBBBl', mp3.read(TagHeader.SIZE)))
 
     def __init__(self, identifier, major, minor, flags, tag_size):
         if Codec.default().decode(identifier) != TagHeader.ID3_IDENTIFIER:
@@ -83,14 +83,14 @@ class Tag:
         self._header = header
         self._frames = frames
 
-    @staticmethod
-    def read_from(path):
+    @classmethod
+    def read_from(cls, path):
         """Read full ID3v2.3 tag from mp3 file"""
         with open(path, 'rb') as mp3:
             header = TagHeader.read_from(mp3)
             frames = Tag._read_frames_from(mp3, header)
 
-            return Tag(header, frames)
+        return cls(header, frames)
 
     @staticmethod
     def _read_frames_from(mp3, header):
