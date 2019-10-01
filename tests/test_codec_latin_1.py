@@ -1,6 +1,6 @@
 import unittest
 
-from codec import Latin1Codec
+from src.codec import Latin1Codec
 
 
 class CodecLatin1Tests(unittest.TestCase):

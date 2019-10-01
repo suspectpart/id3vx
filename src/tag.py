@@ -1,8 +1,8 @@
 import struct
 from enum import IntFlag
 
-from codec import Codec
-from frame import Frame
+from src.codec import Codec
+from src.frame import Frame
 
 
 class TagHeader:

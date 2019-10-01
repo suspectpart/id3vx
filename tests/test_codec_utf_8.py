@@ -1,6 +1,6 @@
 import unittest
 
-from codec import UTF8Codec
+from src.codec import UTF8Codec
 
 
 class UTF8CodecTests(unittest.TestCase):
