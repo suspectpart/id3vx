@@ -134,6 +134,8 @@ class FrameHeader:
             return UserDefinedURLLinkFrame
         elif self.id() == b'WOAR':
             return URLLinkFrame
+        elif self.id() == b'PRIV':
+            return PrivateFrame
         elif self.id() == b'COMM':
             return CommentFrame
         elif self.id().startswith(b'T'):
@@ -201,6 +203,24 @@ class Frame:
         return f'{type(self).__name__}(' \
                f'{repr(self.header())},' \
                f'fields="{str(self)}",size={len(self)})'
+
+
+class PrivateFrame(Frame):
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+
+        # TODO: can this be integrated with the codec?
+        owner, self._data = self.fields().split(b'\x00', 1)
+        self._owner = Codec.default().decode(owner)
+
+    def owner(self):
+        return self._owner
+
+    def data(self):
+        return self._data
+
+    def __str__(self):
+        return f'[owner {self.owner()}] {self.data()}'
 
 
 class TextFrame(Frame):
