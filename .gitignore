@@ -126,3 +126,7 @@ dmypy.json
 
 # Pycharm configuration
 .idea/
+
+# Coverage
+cover/
+.coverarge
