@@ -1,0 +1,16 @@
+language: python
+
+python:
+  - "3.6"
+  - "3.7"
+
+cache:
+    pip: true
+
+install:
+    - pip install nose
+    - pip install coverage
+    - pip install flake8
+
+script: make test
+
