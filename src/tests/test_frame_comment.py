@@ -32,7 +32,6 @@ class CommentFrameTests(unittest.TestCase):
     def test_allow_empty_comment_and_description(self):
         """Allows empty comment and description"""
         # Arrange
-        encoding = "utf-16"
         header = FrameHeader(b'COMM', 0x00FA, 0)
 
         term = b'\x00\x00'
