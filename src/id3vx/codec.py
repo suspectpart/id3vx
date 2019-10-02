@@ -30,9 +30,9 @@ class Codec:
         """Splits a string at separator"""
         return byte_string.split(self.separator, maxsplit or -1)
 
-    def split_decode(self, byte_string: bytes, maxsplit=None):
+    def split_decode(self, byte_string: bytes, tokens=None):
         """Split byte_string at separator and decode the parts"""
-        parts = self.split(byte_string)[:maxsplit]
+        parts = self.split(byte_string)[:tokens]
         return (self.decode(part) for part in parts)
 
     def __str__(self):

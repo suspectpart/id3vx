@@ -129,6 +129,13 @@ class Frame:
         return bytes(self.header()) + bytes(self.fields())
 
 
+class AttachedPictureFrame(Frame):
+    # TODO: Just a stub
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'APIC'
+
+
 class PrivateFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
@@ -149,8 +156,15 @@ class PrivateFrame(Frame):
         return f'[owner {self.owner()}] {self.data()}'
 
 
+class UFIDFrame(PrivateFrame):
+    """A Unique file identifier frame (UFID)"""
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'UFID'
+
+
 class TextFrame(Frame):
-    """A text frame
+    """A text frame (T___)
 
     Decodes all of the frame with the encoding read from the first byte.
     """
@@ -173,7 +187,7 @@ class TextFrame(Frame):
 
 
 class PicardFrame(TextFrame):
-    """Special, kind of hacky frame introduced by MusicBrainz Picard
+    """A Special, kind of hacky frame introduced by MusicBrainz Picard (XSO*)
 
     Can be XSOA, XSOT or XSOP that map to TSOA, TSOT and TSOP in ID3v2.4
     """
@@ -388,7 +402,7 @@ DECLARED_FRAMES = {
     "TSSE": "Software/Hardware and settings used for encoding",
     "TYER": "Year",
     "TXXX": "User defined text information frame",
-    "UFID": "1 Unique file identifier",
+    "UFID": "Unique file identifier",
     "USER": "Terms of use",
     # sic! (typo in spec: Unsychronized must be "Unsynchronized")
     "USLT": "Unsychronized lyric/text transcription",
@@ -406,6 +420,7 @@ DECLARED_FRAMES = {
     "XSOA": "Album sort order",
 }
 
+
 FRAMES_PIPE = [
     UserDefinedTextFrame,
     UserDefinedURLLinkFrame,
@@ -413,6 +428,8 @@ FRAMES_PIPE = [
     PrivateFrame,
     ChapterFrame,
     CommentFrame,
+    UFIDFrame,
+    AttachedPictureFrame,
     PicardFrame,
     TextFrame,
     Frame,
