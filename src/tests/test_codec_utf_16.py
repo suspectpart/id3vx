@@ -43,7 +43,7 @@ class CodecUtf16Tests(unittest.TestCase):
         codec = UTF16Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 1))
 
         # Assert
         self.assertEqual(len(parts), 1)
@@ -58,7 +58,7 @@ class CodecUtf16Tests(unittest.TestCase):
         codec = UTF16Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)
@@ -74,7 +74,7 @@ class CodecUtf16Tests(unittest.TestCase):
         codec = UTF16Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 1))
 
         # Assert
         self.assertEqual(len(parts), 1)
@@ -89,7 +89,7 @@ class CodecUtf16Tests(unittest.TestCase):
         codec = UTF16Codec()
 
         # Act
-        parts = list(codec.split_decode(le_byte_string))
+        parts = list(codec.split_decode(le_byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)
@@ -117,7 +117,7 @@ class CodecUtf16Tests(unittest.TestCase):
         codec = UTF16Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)
@@ -133,7 +133,7 @@ class CodecUtf16Tests(unittest.TestCase):
         codec = UTF16Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)
@@ -149,7 +149,7 @@ class CodecUtf16Tests(unittest.TestCase):
         codec = UTF16Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)

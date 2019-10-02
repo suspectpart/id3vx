@@ -172,11 +172,21 @@ class TextFrame(Frame):
         return self.text()
 
 
+class PicardFrame(TextFrame):
+    """Special, kind of hacky frame introduced by MusicBrainz Picard
+
+    Can be XSOA, XSOT or XSOP that map to TSOA, TSOT and TSOP in ID3v2.4
+    """
+    @staticmethod
+    def represents(identifier):
+        return identifier in [b'XSOA', b'XSOP', b'XSOT']
+
+
 class UserDefinedTextFrame(TextFrame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._description, self._text = self._codec.split_decode(fields[1:])
+        self._description, self._text = self._codec.split_decode(fields[1:], 2)
 
     @staticmethod
     def represents(identifier):
@@ -210,11 +220,7 @@ class UserDefinedURLLinkFrame(TextFrame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        try:
-            self._description, self._url = self._codec.split_decode(fields[1:])
-        # FIXME: Bug here (delimiter)
-        except ValueError:
-            self._description = self._url = f"DEBUG {fields[1:]}"
+        self._description, self._url = self._codec.split_decode(fields[1:], 2)
 
     @staticmethod
     def represents(identifier):
@@ -240,12 +246,9 @@ class CommentFrame(TextFrame):
         super().__init__(header, fields)
 
         self._language = Codec.default().decode(fields[1:4])
-        try:
-            parts = self._codec.split_decode(fields[4:])
-            self._description, self._comment = parts
-        # FIXME: Bug here (delimiter)
-        except ValueError:
-            self._description = self._comment = f"DEBUG {fields[1:]}"
+
+        parts = self._codec.split_decode(fields[4:], 2)
+        self._description, self._comment = parts
 
     @staticmethod
     def represents(identifier):
@@ -398,6 +401,9 @@ DECLARED_FRAMES = {
     "WPAY": "Payment",
     "WPUB": "Publishers official webpage",
     "WXXX": "User defined URL link frame",
+    "XSOT": "Title sort order",
+    "XSOP": "Performer sort order",
+    "XSOA": "Album sort order",
 }
 
 FRAMES_PIPE = [
@@ -407,6 +413,7 @@ FRAMES_PIPE = [
     PrivateFrame,
     ChapterFrame,
     CommentFrame,
+    PicardFrame,
     TextFrame,
     Frame,
 ]

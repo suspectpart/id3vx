@@ -28,7 +28,7 @@ class CodecUtf16BeTests(unittest.TestCase):
         codec = UTF16BECodec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 1))
 
         # Assert
         self.assertEqual(len(parts), 1)
@@ -43,7 +43,7 @@ class CodecUtf16BeTests(unittest.TestCase):
         codec = UTF16BECodec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 1))
 
         # Assert
         self.assertEqual(len(parts), 1)
@@ -58,12 +58,29 @@ class CodecUtf16BeTests(unittest.TestCase):
         codec = UTF16BECodec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)
         self.assertEqual(parts[0], '')
         self.assertEqual(parts[1], '')
+
+    def test_splits_two_separators_three_tolens(self):
+        """Splits a string containing two empty null-separators"""
+        # Arrange
+        byte_string = b'\x00\x00\x00\x00'
+
+        # System under test
+        codec = UTF16BECodec()
+
+        # Act
+        parts = list(codec.split_decode(byte_string, 3))
+
+        # Assert
+        self.assertEqual(len(parts), 3)
+        self.assertEqual(parts[0], '')
+        self.assertEqual(parts[1], '')
+        self.assertEqual(parts[2], '')
 
     def test_split_single_token(self):
         """Splits a string containing a single null-terminated token"""
@@ -74,7 +91,7 @@ class CodecUtf16BeTests(unittest.TestCase):
         codec = UTF16BECodec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 1))
 
         # Assert
         self.assertEqual(len(parts), 1)
@@ -89,7 +106,7 @@ class CodecUtf16BeTests(unittest.TestCase):
         codec = UTF16BECodec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)
@@ -105,7 +122,7 @@ class CodecUtf16BeTests(unittest.TestCase):
         codec = UTF16BECodec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)

@@ -43,7 +43,7 @@ class CodecLatin1Tests(unittest.TestCase):
         codec = Latin1Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 1))
 
         # Assert
         self.assertEqual(len(parts), 1)
@@ -58,7 +58,7 @@ class CodecLatin1Tests(unittest.TestCase):
         codec = Latin1Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)
@@ -74,7 +74,7 @@ class CodecLatin1Tests(unittest.TestCase):
         codec = Latin1Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 1))
 
         # Assert
         self.assertEqual(len(parts), 1)
@@ -89,7 +89,7 @@ class CodecLatin1Tests(unittest.TestCase):
         codec = Latin1Codec()
 
         # Act
-        parts = list(codec.split_decode(byte_string))
+        parts = list(codec.split_decode(byte_string, 2))
 
         # Assert
         self.assertEqual(len(parts), 2)
