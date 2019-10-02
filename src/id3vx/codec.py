@@ -20,7 +20,7 @@ class Codec:
 
     def decode(self, byte_string):
         """Decode byte_string with given encoding"""
-        return byte_string.decode(self.encoding).rstrip("\x00")
+        return byte_string.decode(self.encoding)
 
     def encode(self, byte_string):
         """Decode byte_string with given encoding"""

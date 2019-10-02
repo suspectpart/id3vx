@@ -196,7 +196,7 @@ class FrameTests(unittest.TestCase):
     def test_read_frame_from_stream(self):
         """Defaults to Frame ID if name is unknown"""
         # Arrange
-        fields = b'\x00Album\x00'
+        fields = b'\x00Album'
         size = len(fields)
         header = FrameHeader(b'TALB', size, 0)
         frame = TextFrame(header, fields)

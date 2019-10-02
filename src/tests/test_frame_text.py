@@ -4,15 +4,15 @@ from id3vx.frame import FrameHeader, TextFrame
 
 
 class TextFrameTests(unittest.TestCase):
+    # TODO: what about null terminated strings?
     def test_decodes_latin1_frames_with_null_terminator(self):
         """Decodes Latin1 encoded text"""
         # Arrange
         header = FrameHeader(b'TXXX', 0x00FA, 0)
         encoding = b'\x00'
-        terminator = b'\x00'
         text = "Lörem Ipsüm"
 
-        fields = encoding + text.encode("latin1") + terminator
+        fields = encoding + text.encode("latin1")
 
         # Act
         frame = TextFrame(header, fields)
@@ -42,10 +42,9 @@ class TextFrameTests(unittest.TestCase):
         # Arrange
         header = FrameHeader(b'TXXX', 0x00FA, 0)
         encoding = b'\x01'
-        terminator = b'\x00\x00'
         text = "Lörem Ipsüm"
 
-        fields = encoding + text.encode("utf_16") + terminator
+        fields = encoding + text.encode("utf_16")
 
         # Act
         frame = TextFrame(header, fields)
@@ -59,10 +58,9 @@ class TextFrameTests(unittest.TestCase):
         # Arrange
         header = FrameHeader(b'TXXX', 0x00FA, 0)
         encoding = b'\x02'
-        terminator = b'\x00\x00'
         text = "Lörem Ipsüm"
 
-        fields = encoding + text.encode("utf_16_be") + terminator
+        fields = encoding + text.encode("utf_16_be")
 
         # Act
         frame = TextFrame(header, fields)
@@ -76,10 +74,9 @@ class TextFrameTests(unittest.TestCase):
         # Arrange
         header = FrameHeader(b'TXXX', 0x00FA, 0)
         encoding = b'\x03'
-        null_byte = b'\x00'
         text = "Lörem Ipsüm"
 
-        fields = encoding + text.encode("utf-8") + null_byte
+        fields = encoding + text.encode("utf-8")
 
         # Act
         frame = TextFrame(header, fields)
