@@ -4,6 +4,7 @@ from collections import namedtuple
 from enum import IntFlag
 from io import BytesIO
 
+from id3vx.binary import unsynchsafe
 from .codec import Codec
 from .text import shorten
 
@@ -32,9 +33,12 @@ class FrameHeader:
         GroupingIdentity = 1 << 5
 
     @classmethod
-    def read_from(cls, mp3):
+    def read_from(cls, mp3, unsynchronize_size=False):
         try:
-            identifier, size, flags = struct.unpack('>4sLH', mp3.read(10))
+            block = mp3.read(10)
+            identifier, size, flags = struct.unpack('>4sLH', block)
+            size = unsynchsafe(size) if unsynchronize_size else size
+
             return cls(identifier, size, flags) if size else None
         except struct.error:
             return None
@@ -71,9 +75,9 @@ class Frame:
     """
 
     @classmethod
-    def read_from(cls, mp3):
+    def read_from(cls, mp3, unsynchronize_size=False):
         """Read the next frame from an mp3 file object"""
-        header = FrameHeader.read_from(mp3)
+        header = FrameHeader.read_from(mp3, unsynchronize_size)
 
         if not header:
             return None

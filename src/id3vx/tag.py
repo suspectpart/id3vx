@@ -1,6 +1,7 @@
 import struct
 from enum import IntFlag
 
+from id3vx.binary import unsynchsafe, synchsafe
 from .codec import Codec
 from .frame import Frame
 
@@ -41,13 +42,18 @@ class TagHeader:
 
     @classmethod
     def read_from(cls, mp3):
-        return cls(*struct.unpack('>3sBBBL', mp3.read(TagHeader.SIZE)))
+        unpacked = struct.unpack('>3sBBBL', mp3.read(TagHeader.SIZE))
+        identifier, major, minor, flags, tag_size = unpacked
+
+        return cls(identifier, major, minor, flags, unsynchsafe(tag_size))
 
     def __init__(self, identifier, major, minor, flags, tag_size):
         if Codec.default().decode(identifier) != TagHeader.ID3_IDENTIFIER:
             raise NoTagError()
 
         if major < 3:
+            # FIXME: v2.2 is completely broken due to shorter Frame IDs
+            # FIXME: v2.4 sometimes reads out of bounds (maybe unsynching?)
             raise UnsupportedError(major, minor)
 
         self._version = (major, minor)
@@ -80,7 +86,7 @@ class TagHeader:
                            bytes(TagHeader.ID3_IDENTIFIER, "latin1"),
                            *self.version(),
                            self.flags(),
-                           self.tag_size() - len(self))
+                           synchsafe(self.tag_size() - len(self)))
 
     def __len__(self):
         return TagHeader.SIZE
@@ -115,10 +121,11 @@ class Tag:
         Read consecutive frames up until tag size specified in the header.
         Stops reading frames when an empty (padding) frame is encountered.
         """
+        unsynchronize_frame_size = header.version()[0] == 4
         frames = []
 
         while mp3.tell() < header.tag_size():
-            frame = Frame.read_from(mp3)
+            frame = Frame.read_from(mp3, unsynchronize_frame_size)
 
             if not frame:
                 # stop on first padding frame

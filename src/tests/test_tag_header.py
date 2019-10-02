@@ -1,6 +1,7 @@
 import unittest
 from io import BytesIO
 
+from id3vx.binary import unsynchsafe
 from id3vx.tag import TagHeader, NoTagError, UnsupportedError
 
 
@@ -49,14 +50,14 @@ class TagHeaderTest(unittest.TestCase):
 
         flags = f.Experimental | f.Extended | f.Sync
         version = (3, 1)
-        tag_size = 0x0A0A + 10
+        expected_tag_size = unsynchsafe(0x0A0A + 10)
 
         # System under test / Act
         header = TagHeader.read_from(BytesIO(byte_string))
 
         # Assert
         self.assertEqual(len(header), 10)
-        self.assertEqual(header.tag_size(), tag_size)
+        self.assertEqual(header.tag_size(), expected_tag_size)
         self.assertEqual(header.version(), version)
         self.assertEqual(header.flags(), flags)
         self.assertEqual(bytes(header), byte_string)
@@ -64,7 +65,7 @@ class TagHeaderTest(unittest.TestCase):
     def test_serialization(self):
         """Deserializes from bytes and serializes back to bytes"""
         # Arrange
-        byte_string = b'ID3\x03\x01\xe0\x00\x00\x0A\x0A'
+        byte_string = b'ID3\x03\x01\xe0\x00\x00\x00\x0A'
 
         # System under test / Act
         header = TagHeader.read_from(BytesIO(byte_string))
