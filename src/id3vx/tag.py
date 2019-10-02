@@ -25,9 +25,9 @@ class TagHeader:
         See `ID3v2.3 tag header specification
         <http://id3.org/id3v2.3.0#ID3v2_header>`_
         """
-        Sync = 1 << 6
-        Extended = 1 << 5
-        Experimental = 1 << 4
+        Sync = 1 << 7
+        Extended = 1 << 6
+        Experimental = 1 << 5
 
     @classmethod
     def read_from(cls, mp3):
@@ -54,7 +54,7 @@ class TagHeader:
         than the `tag size specification
         <http://id3.org/id3v2.3.0#ID3v2_header>`_ that excludes the header size
         """
-        return TagHeader.SIZE + self._tag_size
+        return len(self) + self._tag_size
 
     def __repr__(self):
         major, minor = self.version()
@@ -67,7 +67,10 @@ class TagHeader:
                            bytes(TagHeader.ID3_IDENTIFIER, "latin1"),
                            *self.version(),
                            self.flags(),
-                           self.tag_size() - TagHeader.SIZE)
+                           self.tag_size() - len(self))
+
+    def __len__(self):
+        return TagHeader.SIZE
 
 
 class Tag:
