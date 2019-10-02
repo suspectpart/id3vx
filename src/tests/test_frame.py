@@ -1,7 +1,7 @@
 import unittest
 from io import BytesIO
 
-from id3vx.frame import FrameHeader, Frame, PrivateFrame, TextFrame
+from id3vx.frame import FrameHeader, Frame, TextFrame
 
 
 class FrameHeaderTests(unittest.TestCase):
