@@ -1,11 +1,10 @@
 import unittest
 from io import BytesIO
 
-from id3vx.frame import FrameHeader
+from id3vx.frame import FrameHeader, Frame, PrivateFrame, TextFrame
 
 
 class FrameHeaderTests(unittest.TestCase):
-
     def test_reads_header_from_stream(self):
         """Reads FrameHeader from a bytes stream"""
         # Arrange
@@ -122,3 +121,92 @@ class FrameHeaderTests(unittest.TestCase):
 
         # Assert
         self.assertEqual(header_bytes, expected_bytes)
+
+
+class FrameTests(unittest.TestCase):
+    def test_represents_every_frame_id(self):
+        """Represents every Frame ID"""
+        # Arrange - Act - Assert
+        self.assertTrue(Frame.represents(b'TXXX'))
+        self.assertTrue(Frame.represents(b'TALB'))
+        self.assertTrue(Frame.represents(b'WXXX'))
+        self.assertTrue(Frame.represents(b'WOAR'))
+        self.assertTrue(Frame.represents(b'COMM'))
+        self.assertTrue(Frame.represents(b'PRIV'))
+        self.assertTrue(Frame.represents(b'????'))
+
+    def test_exposes_fields(self):
+        """Exposes relevant fields"""
+        # Arrange
+        header = FrameHeader(b'PRIV', 100, 0)
+        fields = b'\x0a\x0f\x00\x0f\x0c'
+
+        # System under test
+        frame = Frame(header, fields)
+
+        # Assert
+        self.assertEqual(frame.header(), header)
+        self.assertEqual(frame.id(), "PRIV")
+        self.assertEqual(frame.fields(), fields)
+        self.assertEqual(str(frame), str(fields))
+        self.assertEqual(frame.name(), "Private frame")
+
+    def test_serializes_to_bytes(self):
+        """Serializes itself to bytes"""
+        # Arrange
+        header = FrameHeader(b'PRIV', 100, 0)
+        header_bytes = bytes(header)
+        fields = b'\x0a\x0f\x00\x0f\x0c'
+
+        # System under test
+        frame = Frame(header, fields)
+
+        # Act
+        byte_string = bytes(frame)
+
+        # Assert
+        self.assertEqual(byte_string, header_bytes + fields)
+
+    def test_defaults_name_to_identifier(self):
+        """Defaults to Frame ID if name is unknown"""
+        # Arrange
+        header = FrameHeader(b'ABCD', 100, 0)
+        fields = b'\x0a\x0f\x00\x0f\x0c'
+
+        # System under test
+        frame = Frame(header, fields)
+
+        # Act - Assert
+        self.assertEqual(frame.name(), "ABCD")
+
+    def test_no_frame_if_header_invalid(self):
+        """Defaults to Frame ID if name is unknown"""
+        # Arrange
+        broken_header = bytes(10)
+        fields = bytes(100)
+
+        stream = BytesIO(broken_header + fields)
+
+        # System under test
+        frame = Frame.read_from(stream)
+
+        # Act - Assert
+        self.assertIsNone(frame)
+
+    def test_read_frame_from_stream(self):
+        """Defaults to Frame ID if name is unknown"""
+        # Arrange
+        fields = b'\x00Album\x00'
+        size = len(fields)
+        header = FrameHeader(b'TALB', size, 0)
+        frame = TextFrame(header, fields)
+
+        stream = BytesIO(bytes(frame))
+
+        # System under test
+        frame = Frame.read_from(stream)
+
+        # Act - Assert
+        self.assertEqual(type(frame), TextFrame)
+        self.assertEqual(frame.id(), "TALB")
+        self.assertEqual(frame.text(), "Album")

@@ -82,6 +82,10 @@ class Frame:
 
         return cls_(header, fields)
 
+    @staticmethod
+    def represents(identifier):
+        return True
+
     def __init__(self, header, fields):
         self._header = header
         self._fields = fields
