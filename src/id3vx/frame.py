@@ -5,6 +5,7 @@ from enum import IntFlag
 from io import BytesIO
 
 from .codec import Codec
+from .text import shorten
 
 
 class FrameHeader:
@@ -122,7 +123,7 @@ class Frame:
     def __repr__(self):
         return f'{type(self).__name__}(' \
                f'{repr(self.header())},' \
-               f'fields="{str(self)}",size={len(self)})'
+               f'fields="{shorten(str(self), 250)}",size={len(self)})'
 
     def __bytes__(self):
         return bytes(self.header()) + bytes(self.fields())

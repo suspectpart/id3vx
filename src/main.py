@@ -4,9 +4,12 @@ import sys
 from id3vx.tag import Tag
 
 if __name__ == "__main__":
-    tag = Tag.read_from(sys.argv[1])
+    path = sys.argv[1]
 
-    print(tag)
-    print(*(repr(frame) for frame in tag), sep="\n")
-    print()
-    print(bytes(tag))
+    try:
+        tag = Tag.read_from(path)
+        print(tag, *(repr(frame) for frame in tag), sep="\n")
+
+    except Exception as error:
+        print(path, file=sys.stderr)
+        raise error

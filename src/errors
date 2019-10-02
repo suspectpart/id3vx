@@ -1,0 +1,349 @@
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/01-Sing This All Together.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/10-On With The Show.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/08-Gomper.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/02-Citadel.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/07-The Lantern.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/04-2000 Man.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/05-Sing This All Together (See What Happens).mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/09-2000 Light Years From Home.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/06-She's A Rainbow.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Rolling Stones/1967 - Their Satanic Majesties Request/03-In Another Land.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 239, in __init__
+    self._description, self._comment = self._codec.split_decode(fields[4:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/03 En Ny Generation Stöveltramp.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/08 Ett Liv Som Fånge.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/07 Kopps.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/02 Är Vi Verkligen Nöjda_.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/14 Det Viktigaste (Unrealesed Comp T.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/05 På Med Plattan.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/06 Du Är Förtryck.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/09 Burning Police Cars.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/13 Scouting The Target, Planning The.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/10 Fördummad Av Status.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/11 Raped Ass Pt2.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/12 N.W.I.W.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+/media/horst/189c70b7-c3e2-4746-b330-e3da14ecbc9f/music/Auktion/D-Beat Rock 'n' Roll Mayhem/04 Hey Kid!.mp3
+Traceback (most recent call last):
+  File "./main.py", line 15, in <module>
+    raise error
+  File "./main.py", line 10, in <module>
+    tag = Tag.read_from(path)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 94, in read_from
+    frames = Tag._read_frames_from(mp3, header)
+  File "/home/horst/projects/id3vx/src/id3vx/tag.py", line 108, in _read_frames_from
+    frame = Frame.read_from(mp3)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 84, in read_from
+    return cls_(header, fields)
+  File "/home/horst/projects/id3vx/src/id3vx/frame.py", line 213, in __init__
+    self._description, self._url = self._codec.split_decode(fields[1:])
+ValueError: not enough values to unpack (expected 2, got 1)
+Fatal Python error: initsite: Failed to import the site module
+KeyboardInterrupt
+
+Current thread 0x00007f3c0f0b6740 (most recent call first):
