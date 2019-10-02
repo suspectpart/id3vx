@@ -5,6 +5,16 @@ from .codec import Codec
 from .frame import Frame
 
 
+class NoTagError(Exception):
+    def __init__(self):
+        super().__init__("No ID3v2.x Tag Header found.")
+
+
+class UnsupportedError(NotImplementedError):
+    def __init__(self, major, minor):
+        super().__init__(f"ID3v2.{major}.{minor} is not supported")
+
+
 class TagHeader:
     """ID3v2.3 tag header.
 
@@ -35,7 +45,10 @@ class TagHeader:
 
     def __init__(self, identifier, major, minor, flags, tag_size):
         if Codec.default().decode(identifier) != TagHeader.ID3_IDENTIFIER:
-            raise ValueError("No ID3v2.x Tag Header found.")
+            raise NoTagError()
+
+        if major < 3:
+            raise UnsupportedError(major, minor)
 
         self._version = (major, minor)
         self._flags = flags

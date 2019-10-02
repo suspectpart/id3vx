@@ -1,7 +1,7 @@
 import unittest
 from io import BytesIO
 
-from id3vx.tag import TagHeader
+from id3vx.tag import TagHeader, NoTagError, UnsupportedError
 
 
 class TagHeaderTest(unittest.TestCase):
@@ -11,8 +11,18 @@ class TagHeaderTest(unittest.TestCase):
         wrong_identifier = b'???'
 
         # Act - Assert
-        with self.assertRaises(ValueError):
+        with self.assertRaises(NoTagError):
             TagHeader(wrong_identifier, 0, 0, 0, 0)
+
+    def test_raises_on_unsupported_version(self):
+        """Fails to initialize on wrong identifier"""
+        # Arrange
+        wrong_identifier = b'ID3'
+        unsupported_version = 2
+
+        # Act - Assert
+        with self.assertRaises(UnsupportedError):
+            TagHeader(wrong_identifier, unsupported_version, 0, 0, 0)
 
     def test_exposes_fields(self):
         """Exposes all relevant fields"""

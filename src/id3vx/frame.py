@@ -210,7 +210,11 @@ class UserDefinedURLLinkFrame(TextFrame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._description, self._url = self._codec.split_decode(fields[1:])
+        try:
+            self._description, self._url = self._codec.split_decode(fields[1:])
+        # FIXME: Bug here (delimiter)
+        except ValueError:
+            self._description = self._url = f"DEBUG {fields[1:]}"
 
     @staticmethod
     def represents(identifier):
@@ -236,7 +240,12 @@ class CommentFrame(TextFrame):
         super().__init__(header, fields)
 
         self._language = Codec.default().decode(fields[1:4])
-        self._description, self._comment = self._codec.split_decode(fields[4:])
+        try:
+            parts = self._codec.split_decode(fields[4:])
+            self._description, self._comment = parts
+        # FIXME: Bug here (delimiter)
+        except ValueError:
+            self._description = self._comment = f"DEBUG {fields[1:]}"
 
     @staticmethod
     def represents(identifier):
