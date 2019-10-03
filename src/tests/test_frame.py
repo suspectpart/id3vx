@@ -26,6 +26,24 @@ class FramesTests(unittest.TestCase):
         self.assertEqual(frames[1].id(), 'TIT2')
         self.assertEqual(frames[1].text(), 'theartist')
 
+    def test_handles_padding(self):
+        """Stops on first padding frame"""
+        # Arrange
+        header = FrameHeader(b"TALB", 9, FrameHeader.Flags.Compression)
+        frame = PrivateFrame(header, b'\x00thealbum')
+        padding = b'\x00' * 81
+        tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 100)
+
+        byte_string = bytes(frame) + padding
+
+        # Act
+        frames = Frames.from_file(BytesIO(byte_string), tag_header)
+
+        # Assert
+        self.assertEqual(len(frames), 1)
+        self.assertEqual(frames[0].id(), 'TALB')
+        self.assertEqual(frames[0].text(), 'thealbum')
+
 
 class FrameHeaderTests(unittest.TestCase):
     def test_reads_header_from_stream(self):
