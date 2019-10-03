@@ -1,4 +1,5 @@
 import datetime
+import enum
 import struct
 from collections import namedtuple
 from enum import IntFlag
@@ -11,6 +12,7 @@ from .text import shorten
 
 class Frames(list):
     """Represents a all Frames in a Tag."""
+
     @classmethod
     def from_file(cls, mp3, header):
         """Reads frames from file
@@ -169,14 +171,81 @@ class Frame:
 
 
 class AttachedPictureFrame(Frame):
-    # TODO: Stub implementation, fields are not parsed
+    """An attached picture frame (APIC)
+
+    <Header for 'Attached picture', ID: "APIC">
+    Text encoding   $xx
+    MIME type       <text string> $00
+    Picture type    $xx
+    Description     <text string according to encoding> $00 (00)
+    Picture data    <binary data>
+
+    See `specification <http://id3.org/id3v2.3.0#Attached_picture>`_
+    """
+
+    class PictureType(enum.Enum):
+        OTHER = 0x00  # "Other"
+        ICON = 0x01  # "32x32 pixels 'file icon' (PNG only)"
+        OTHER_ICON = 0x02  # "Other file icon"
+        FRONT_COVER = 0x03  # "Cover (front)"
+        BACK_COVER = 0x04  # "Cover (back)"
+        LEAFLET = 0x05  # "Leaflet page"
+        MEDIA = 0x06  # "Media (e.g. lable side of CD)"
+        LEAD_ARTIST = 0x07  # "Lead artist/lead performer/soloist"
+        ARTIST = 0x08  # "Artist/performer"
+        CONDUCTOR = 0x09  # "Conductor"
+        BAND = 0x0A  # "Band/Orchestra"
+        COMPOSER = 0x0B  # "Composer"
+        LYRICIST = 0x0C  # "Lyricist/text writer"
+        RECORD_LOCATION = 0x0D  # "Recording Location"
+        DURING_LOCATION = 0x0E  # "During recording"
+        DURING_PERFORMANCE = 0x0F  # "During performance"
+        SCREEN_CAPTURE = 0x10  # "Movie/video screen capture"
+        BRIGHT_COLORED_FISH = 0x11  # "A bright coloured fish"
+        ILLUSTRATION = 0x12  # "Illustration"
+        BAND_LOGO_TYPE = 0x13  # "Band/artist logotype"
+        PUBLISHER_LOGO_TYPE = 0x14  # "Publisher/Studio logotype"
+
     @staticmethod
     def represents(identifier):
         return identifier == b'APIC'
 
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+
+        self._codec = Codec.get(fields[0])
+        mime_type, remainder = Codec.default().split(fields[1:], 1)
+        description, self._data = self._codec.split(remainder[1:], 1)
+
+        self._picture_type = self.PictureType(remainder[0])
+        self._description = self._codec.decode(description)
+        self._mime_type = Codec.default().decode(mime_type)
+
+    def picture_type(self):
+        return self._picture_type
+
+    def description(self):
+        return self._description
+
+    def mime_type(self):
+        return self._mime_type
+
+    def data(self):
+        return self._data
+
+    def __str__(self):
+        return f"[mime-type={self.mime_type()}]" \
+               f"[description={self.description()}]" \
+               f"[picture-type={self.picture_type()}]" \
+               f"[data={self.data()}]"
+
 
 class MusicCDIdentifierFrame(Frame):
-    """A Music CD Identifier Frame (MCDI)"""
+    """A Music CD Identifier Frame (MCDI)
+
+    See `specification <http://id3.org/id3v2.3.0#Music_CD_identifier>`_
+    """
+
     @staticmethod
     def represents(identifier):
         return identifier == b'MCDI'
@@ -188,6 +257,7 @@ class MusicCDIdentifierFrame(Frame):
 
 class MusicMatchMysteryFrame(Frame):
     """A mysterious binary frame added by MusicMatch (NCON)"""
+
     @staticmethod
     def represents(identifier):
         return identifier == b'NCON'
@@ -215,6 +285,7 @@ class PrivateFrame(Frame):
 
 class UFIDFrame(PrivateFrame):
     """A Unique file identifier frame (UFID)"""
+
     @staticmethod
     def represents(identifier):
         return identifier == b'UFID'
@@ -229,8 +300,8 @@ class TextFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._codec = Codec.get(super().fields()[0])
-        self._text = super().fields()[1:]
+        self._codec = Codec.get(fields[0])
+        self._text = fields[1:]
 
     @staticmethod
     def represents(identifier):
@@ -248,6 +319,7 @@ class PicardFrame(TextFrame):
 
     Can be XSOA, XSOT or XSOP that map to TSOA, TSOT and TSOP in ID3v2.4
     """
+
     @staticmethod
     def represents(identifier):
         return identifier in [b'XSOA', b'XSOP', b'XSOT']
@@ -476,7 +548,6 @@ DECLARED_FRAMES = {
     "XSOP": "Performer sort order",
     "XSOA": "Album sort order",
 }
-
 
 FRAMES_PIPE = [
     UserDefinedTextFrame,
