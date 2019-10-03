@@ -9,6 +9,33 @@ from .codec import Codec
 from .text import shorten
 
 
+class Frames(list):
+    """Represents a all Frames in a Tag."""
+    @classmethod
+    def from_file(cls, mp3, header):
+        """Reads frames from file
+
+        Read consecutive frames up until tag size specified in the header.
+        Stops reading frames when an empty (padding) frame is encountered.
+        """
+        synchsafe_frame_size = header.version()[0] == 4
+        frames = []
+
+        while mp3.tell() < header.tag_size():
+            frame = Frame.from_file(mp3, synchsafe_frame_size)
+
+            if not frame:
+                # stop on first padding frame
+                break
+
+            frames.append(frame)
+
+        return cls(frames)
+
+    def __init__(self, args):
+        super().__init__(args)
+
+
 class FrameHeader:
     """A single 10-byte ID3v2.3 frame header.
 
@@ -33,7 +60,7 @@ class FrameHeader:
         GroupingIdentity = 1 << 5
 
     @classmethod
-    def read_from(cls, mp3, unsynchronize_size=False):
+    def from_file(cls, mp3, unsynchronize_size=False):
         try:
             block = mp3.read(FrameHeader.SIZE)
             identifier, size, flags = struct.unpack('>4sLH', block)
@@ -83,9 +110,9 @@ class Frame:
     """
 
     @classmethod
-    def read_from(cls, mp3, unsynchronize_size=False):
+    def from_file(cls, mp3, unsynchronize_size=False):
         """Read the next frame from an mp3 file object"""
-        header = FrameHeader.read_from(mp3, unsynchronize_size)
+        header = FrameHeader.from_file(mp3, unsynchronize_size)
 
         if not header:
             return None
@@ -334,7 +361,7 @@ class ChapterFrame(Frame):
     def sub_frames(self):
         """CHAP frames include 0-2 sub frames (of type TIT2 and TIT3)"""
         with BytesIO(self._sub_frames) as io:
-            frames = [Frame.read_from(io), Frame.read_from(io)]
+            frames = [Frame.from_file(io), Frame.from_file(io)]
 
         return (f for f in frames if f)
 

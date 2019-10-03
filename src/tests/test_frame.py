@@ -1,7 +1,30 @@
 import unittest
 from io import BytesIO
 
-from id3vx.frame import FrameHeader, Frame, TextFrame
+from id3vx.frame import FrameHeader, Frame, TextFrame, PrivateFrame, Frames
+from id3vx.tag import TagHeader
+
+
+class FramesTests(unittest.TestCase):
+    def test_reads_frames_from_file(self):
+        # Arrange
+        header_a = FrameHeader(b"TALB", 9, FrameHeader.Flags.Compression)
+        frame_a = PrivateFrame(header_a, b'\x00thealbum')
+        header_b = FrameHeader(b"TIT2", 10, FrameHeader.Flags.Encryption)
+        frame_b = PrivateFrame(header_b, b'\x00theartist')
+        tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 39)
+
+        byte_string = bytes(frame_a) + bytes(frame_b)
+
+        # Act
+        frames = Frames.from_file(BytesIO(byte_string), tag_header)
+
+        # Assert
+        self.assertEqual(len(frames), 2)
+        self.assertEqual(frames[0].id(), 'TALB')
+        self.assertEqual(frames[0].text(), 'thealbum')
+        self.assertEqual(frames[1].id(), 'TIT2')
+        self.assertEqual(frames[1].text(), 'theartist')
 
 
 class FrameHeaderTests(unittest.TestCase):
@@ -15,7 +38,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size + flags)
 
         # Act
-        header = FrameHeader.read_from(stream)
+        header = FrameHeader.from_file(stream)
 
         # Assert
         self.assertEqual(header.frame_size(), 255)
@@ -32,7 +55,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size + flags)
 
         # Act
-        header = FrameHeader.read_from(stream)
+        header = FrameHeader.from_file(stream)
 
         # Assert
         self.assertIn(FrameHeader.Flags.Compression, header.flags())
@@ -52,7 +75,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size + flags)
 
         # Act
-        header = FrameHeader.read_from(stream)
+        header = FrameHeader.from_file(stream)
 
         # Assert
         self.assertIn(FrameHeader.Flags.Compression, header.flags())
@@ -69,7 +92,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + frame_size + flags)
 
         # Act
-        header = FrameHeader.read_from(stream)
+        header = FrameHeader.from_file(stream)
 
         # Assert
         self.assertEqual(header.frame_size(), 1)
@@ -85,7 +108,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size)
 
         # Act
-        header = FrameHeader.read_from(stream)
+        header = FrameHeader.from_file(stream)
 
         # Assert
         self.assertIsNone(header)
@@ -100,7 +123,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size + flags)
 
         # Act
-        header = FrameHeader.read_from(stream)
+        header = FrameHeader.from_file(stream)
 
         # Assert
         self.assertIsNone(header)
@@ -190,7 +213,7 @@ class FrameTests(unittest.TestCase):
         stream = BytesIO(broken_header + fields)
 
         # System under test
-        frame = Frame.read_from(stream)
+        frame = Frame.from_file(stream)
 
         # Act - Assert
         self.assertIsNone(frame)
@@ -206,7 +229,7 @@ class FrameTests(unittest.TestCase):
         stream = BytesIO(bytes(frame))
 
         # System under test
-        frame = Frame.read_from(stream)
+        frame = Frame.from_file(stream)
 
         # Act - Assert
         self.assertEqual(type(frame), TextFrame)

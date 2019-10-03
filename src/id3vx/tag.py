@@ -3,7 +3,7 @@ from enum import IntFlag
 
 from id3vx.binary import unsynchsafe, synchsafe
 from .codec import Codec
-from .frame import Frame
+from .frame import Frames
 
 
 class NoTagError(Exception):
@@ -42,7 +42,7 @@ class TagHeader:
         FooterPresent = 1 << 4
 
     @classmethod
-    def read_from(cls, mp3):
+    def from_file(cls, mp3):
         block = mp3.read(TagHeader.SIZE)
         identifier, major, minor, flags, size = struct.unpack('>3sBBBL', block)
 
@@ -113,40 +113,19 @@ class Tag:
         self._frames = frames
 
     @classmethod
-    def read_from(cls, path):
+    def from_file(cls, path):
         """Read full ID3v2.3 tag from mp3 file"""
         with open(path, 'rb') as mp3:
-            header = TagHeader.read_from(mp3)
-            frames = Tag._read_frames_from(mp3, header)
+            header = TagHeader.from_file(mp3)
+            frames = Frames.from_file(mp3, header)
 
         return cls(header, frames)
-
-    @staticmethod
-    def _read_frames_from(mp3, header):
-        """Read frames from mp3 file
-
-        Read consecutive frames up until tag size specified in the header.
-        Stops reading frames when an empty (padding) frame is encountered.
-        """
-        unsynchronize_frame_size = header.version()[0] == 4
-        frames = []
-
-        while mp3.tell() < header.tag_size():
-            frame = Frame.read_from(mp3, unsynchronize_frame_size)
-
-            if not frame:
-                # stop on first padding frame
-                break
-
-            frames.append(frame)
-
-        return frames
 
     def header(self):
         return self._header
 
     def __iter__(self):
-        return iter(self._frames)
+        return self._frames.__iter__()
 
     def __len__(self):
         """The overall size of the tag in bytes, including header."""

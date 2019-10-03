@@ -7,7 +7,7 @@ if __name__ == "__main__":
     path = sys.argv[1]
 
     try:
-        tag = Tag.read_from(path)
+        tag = Tag.from_file(path)
         print(tag, *(repr(frame) for frame in tag), sep="\n")
     except (UnsupportedError, NoTagError) as error:
         print(f"{str(error)} (file: {path})")

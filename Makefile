@@ -1,6 +1,6 @@
 .PHONY: test cover
 
-COVERED_PACKAGES = id3vx.tag,id3vx.frame,id3vx.codec,id3vx.text
+COVERED_PACKAGES = id3vx.tag,id3vx.frame,id3vx.codec,id3vx.text,id3vx.binary
 
 test:
 	python -m nose
