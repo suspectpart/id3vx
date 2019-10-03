@@ -6,7 +6,7 @@ from enum import IntFlag
 from io import BytesIO
 
 from id3vx.binary import unsynchsafe
-from id3vx.fields import TextField, BinaryField
+from id3vx.fields import TextField, BinaryField, CodecField, EncodedTextField
 from .codec import Codec
 from .text import shorten
 
@@ -310,15 +310,17 @@ class TextFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._codec = Codec.get(fields[0])
-        self._text = fields[1:]
+        stream = BytesIO(fields)
+
+        self._codec = CodecField.read(stream)
+        self._text = EncodedTextField.read(stream, codec=self._codec)
 
     @staticmethod
     def represents(identifier):
         return identifier.startswith(b'T')
 
     def text(self):
-        return self._codec.decode(self._text)
+        return str(self._text)
 
     def __str__(self):
         return self.text()
