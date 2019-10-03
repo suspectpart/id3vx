@@ -13,17 +13,18 @@ class TagHeaderTest(unittest.TestCase):
 
         # Act - Assert
         with self.assertRaises(NoTagError):
-            TagHeader(wrong_identifier, 0, 0, 0, 0)
+            TagHeader(wrong_identifier, 0, 0, TagHeader.Flags(0), 0)
 
     def test_raises_on_unsupported_version(self):
         """Fails to initialize on wrong identifier"""
         # Arrange
         wrong_identifier = b'ID3'
         unsupported_version = 2
+        flags = TagHeader.Flags(0)
 
         # Act - Assert
         with self.assertRaises(UnsupportedError):
-            TagHeader(wrong_identifier, unsupported_version, 0, 0, 0)
+            TagHeader(wrong_identifier, unsupported_version, 0, flags, 0)
 
     def test_exposes_fields(self):
         """Exposes all relevant fields"""
@@ -46,9 +47,9 @@ class TagHeaderTest(unittest.TestCase):
         """Deserializes from bytes"""
         # Arrange
         f = TagHeader.Flags  # for brevity's sake
-        byte_string = b'ID3\x03\x01\xe0\x00\x00\x0A\x0A'
+        byte_string = b'ID3\x03\x01\x60\x00\x00\x0A\x0A'
 
-        flags = f.Experimental | f.Extended | f.Sync
+        flags = f.Experimental | f.Extended
         version = (3, 1)
         expected_tag_size = unsynchsafe(0x0A0A + 10)
 
@@ -65,7 +66,7 @@ class TagHeaderTest(unittest.TestCase):
     def test_serialization(self):
         """Deserializes from bytes and serializes back to bytes"""
         # Arrange
-        byte_string = b'ID3\x03\x01\xe0\x00\x00\x00\x0A'
+        byte_string = b'ID3\x03\x01\x60\x00\x00\x00\x0A'
 
         # System under test / Act
         header = TagHeader.read_from(BytesIO(byte_string))

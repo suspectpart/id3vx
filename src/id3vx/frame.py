@@ -37,6 +37,8 @@ class FrameHeader:
         try:
             block = mp3.read(10)
             identifier, size, flags = struct.unpack('>4sLH', block)
+
+            # FIXME: hacky, handed down all the way. needs some polymorphism
             size = unsynchsafe(size) if unsynchronize_size else size
 
             return cls(identifier, size, flags) if size else None
@@ -134,7 +136,7 @@ class Frame:
 
 
 class AttachedPictureFrame(Frame):
-    # TODO: Just a stub
+    # TODO: Stub implementation, fields are not parsed
     @staticmethod
     def represents(identifier):
         return identifier == b'APIC'

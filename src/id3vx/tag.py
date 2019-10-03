@@ -12,8 +12,8 @@ class NoTagError(Exception):
 
 
 class UnsupportedError(NotImplementedError):
-    def __init__(self, major, minor):
-        super().__init__(f"ID3v2.{major}.{minor} is not supported")
+    def __init__(self, message):
+        super().__init__(message)
 
 
 class TagHeader:
@@ -39,13 +39,17 @@ class TagHeader:
         Sync = 1 << 7
         Extended = 1 << 6
         Experimental = 1 << 5
+        FooterPresent = 1 << 4
 
     @classmethod
     def read_from(cls, mp3):
-        unpacked = struct.unpack('>3sBBBL', mp3.read(TagHeader.SIZE))
-        identifier, major, minor, flags, tag_size = unpacked
+        block = mp3.read(TagHeader.SIZE)
+        identifier, major, minor, flags, size = struct.unpack('>3sBBBL', block)
 
-        return cls(identifier, major, minor, flags, unsynchsafe(tag_size))
+        flags = TagHeader.Flags(flags)
+        size = unsynchsafe(size)
+
+        return cls(identifier, major, minor, flags, size)
 
     def __init__(self, identifier, major, minor, flags, tag_size):
         if Codec.default().decode(identifier) != TagHeader.ID3_IDENTIFIER:
@@ -53,8 +57,11 @@ class TagHeader:
 
         if major < 3:
             # FIXME: v2.2 is completely broken due to shorter Frame IDs
-            # FIXME: v2.4 sometimes reads out of bounds (maybe unsynching?)
-            raise UnsupportedError(major, minor)
+            raise UnsupportedError(f"ID3v2.{major}.{minor} is not supported")
+
+        if TagHeader.Flags.Sync in flags:
+            # FIXME: v2.4 reads out of bounds on unsynchronisation frames
+            raise UnsupportedError(f"Unsynchronisation is not supported")
 
         self._version = (major, minor)
         self._flags = flags
@@ -64,7 +71,7 @@ class TagHeader:
         return self._version
 
     def flags(self):
-        return TagHeader.Flags(self._flags)
+        return self._flags
 
     def tag_size(self):
         """Overall size of the tag, including the header size.
@@ -79,7 +86,7 @@ class TagHeader:
         major, minor = self.version()
 
         return f"TagHeader(major={major},minor={minor}," \
-            f"flags={self.flags()},tag_size={self._tag_size})"
+            f"flags={str(self.flags())},tag_size={self._tag_size})"
 
     def __bytes__(self):
         return struct.pack('>3sBBBL',
