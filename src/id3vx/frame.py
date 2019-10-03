@@ -186,26 +186,26 @@ class AttachedPictureFrame(Frame):
     """
 
     class PictureType(enum.Enum):
-        OTHER = 0x00                # "Other"
-        ICON = 0x01                 # "32x32 pixels 'file icon' (PNG only)"
-        OTHER_ICON = 0x02           # "Other file icon"
-        FRONT_COVER = 0x03          # "Cover (front)"
-        BACK_COVER = 0x04           # "Cover (back)"
-        LEAFLET = 0x05              # "Leaflet page"
-        MEDIA = 0x06                # "Media (e.g. lable side of CD)"
-        LEAD_ARTIST = 0x07          # "Lead artist/lead performer/soloist"
-        ARTIST = 0x08               # "Artist/performer"
-        CONDUCTOR = 0x09            # "Conductor"
-        BAND = 0x0A                 # "Band/Orchestra"
-        COMPOSER = 0x0B             # "Composer"
-        LYRICIST = 0x0C             # "Lyricist/text writer"
-        RECORD_LOCATION = 0x0D      # "Recording Location"
-        DURING_LOCATION = 0x0E      # "During recording"
-        DURING_PERFORMANCE = 0x0F   # "During performance"
-        SCREEN_CAPTURE = 0x10       # "Movie/video screen capture"
+        OTHER = 0x00  # "Other"
+        ICON = 0x01  # "32x32 pixels 'file icon' (PNG only)"
+        OTHER_ICON = 0x02  # "Other file icon"
+        FRONT_COVER = 0x03  # "Cover (front)"
+        BACK_COVER = 0x04  # "Cover (back)"
+        LEAFLET = 0x05  # "Leaflet page"
+        MEDIA = 0x06  # "Media (e.g. lable side of CD)"
+        LEAD_ARTIST = 0x07  # "Lead artist/lead performer/soloist"
+        ARTIST = 0x08  # "Artist/performer"
+        CONDUCTOR = 0x09  # "Conductor"
+        BAND = 0x0A  # "Band/Orchestra"
+        COMPOSER = 0x0B  # "Composer"
+        LYRICIST = 0x0C  # "Lyricist/text writer"
+        RECORD_LOCATION = 0x0D  # "Recording Location"
+        DURING_LOCATION = 0x0E  # "During recording"
+        DURING_PERFORMANCE = 0x0F  # "During performance"
+        SCREEN_CAPTURE = 0x10  # "Movie/video screen capture"
         BRIGHT_COLORED_FISH = 0x11  # "A bright coloured fish"
-        ILLUSTRATION = 0x12         # "Illustration"
-        BAND_LOGO_TYPE = 0x13       # "Band/artist logotype"
+        ILLUSTRATION = 0x12  # "Illustration"
+        BAND_LOGO_TYPE = 0x13  # "Band/artist logotype"
         PUBLISHER_LOGO_TYPE = 0x14  # "Publisher/Studio logotype"
 
     @staticmethod
@@ -215,11 +215,11 @@ class AttachedPictureFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        # There are some tags that contain only null bytes \x00\x00\x00
+        # There are some tags that contain only three null bytes \x00\x00\x00
         # right before the data starts. Parsing them causes all the fields
         # to be slightly off, e.g. the JPEG header slips into the description,
         # reading ÿØÿà. kid3 and eyeD3 Have the same issue, so that seems to
-        # be violating spec and it's not just me being stupid.
+        # be a violation of the spec and it's not just me being stupid.
         stream = BytesIO(fields)
 
         self._codec = CodecField.read(stream)
@@ -229,7 +229,7 @@ class AttachedPictureFrame(Frame):
         self._data = BinaryField.read(stream)
 
     def picture_type(self):
-        return self.PictureType(self._picture_type)
+        return self.PictureType(int(self._picture_type))
 
     def description(self):
         return str(self._description)
@@ -338,20 +338,28 @@ class PicardFrame(TextFrame):
 
 
 class UserDefinedTextFrame(TextFrame):
+    """A user defined text frame (TXXX)
+
+    <Header for 'User defined text information frame', ID: "TXXX">
+    Text encoding   $xx
+    Description     <text string according to encoding> $00 (00)
+    Value           <text string according to encoding>"""
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._description, self._text = self._codec.split_decode(fields[1:], 2)
+        with BytesIO(fields[1:]) as stream:
+            self._description = EncodedTextField.read(stream, self._codec)
+            self._text = EncodedTextField.read(stream, self._codec)
 
     @staticmethod
     def represents(identifier):
         return identifier == b'TXXX'
 
     def text(self):
-        return self._text
+        return str(self._text)
 
     def description(self):
-        return self._description
+        return str(self._description)
 
     def __str__(self):
         return f'[description {self.description()}] {self.text()}'
@@ -453,11 +461,14 @@ class ChapterFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        element_id, remainder = Codec.default().split(fields, 1)
-
-        self._element_id = Codec.default().decode(element_id)
-        self._timings = self.Timings(*struct.unpack('>LLLL', remainder[:16]))
-        self._sub_frames = remainder[16:]
+        with BytesIO(fields) as stream:
+            self._element_id = TextField.read(stream)
+            self._start_time = IntegerField.read(stream)
+            self._end_time = IntegerField.read(stream)
+            self._start_offset = IntegerField.read(stream)
+            self._end_offset = IntegerField.read(stream)
+            # TODO: needs to be another field
+            self._sub_frames = stream.read()
 
     @staticmethod
     def represents(identifier):
@@ -471,19 +482,19 @@ class ChapterFrame(Frame):
         return (f for f in frames if f)
 
     def element_id(self):
-        return self._element_id
+        return str(self._element_id)
 
     def start(self):
-        return datetime.timedelta(milliseconds=self._timings.start)
+        return datetime.timedelta(milliseconds=int(self._start_time))
 
     def end(self):
-        return datetime.timedelta(milliseconds=self._timings.end)
+        return datetime.timedelta(milliseconds=int(self._end_time))
 
     def offset_start(self):
-        return self._timings.start_offset
+        return int(self._start_offset)
 
     def offset_end(self):
-        return self._timings.end_offset
+        return int(self._end_offset)
 
     def __str__(self):
         return f'[{self._element_id}] ' \
@@ -496,7 +507,11 @@ class ChapterFrame(Frame):
     def __bytes__(self):
         header = bytes(self.header())
         element_id = Codec.default().encode(self._element_id)
-        timings = struct.pack('>LLLL', *self._timings)
+        timings = struct.pack('>LLLL',
+                              int(self._start_time),
+                              int(self._end_time),
+                              self.offset_start(),
+                              self.offset_end())
 
         return header + element_id + timings + self._sub_frames
 

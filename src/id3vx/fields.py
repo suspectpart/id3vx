@@ -10,7 +10,7 @@ class IntegerField:
 
     @classmethod
     def read(cls, stream, length=4):
-        return int.from_bytes(stream.read(length), "big")
+        return IntegerField(int.from_bytes(stream.read(length), "big"))
 
 
 class CodecField:
