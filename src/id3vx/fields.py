@@ -1,6 +1,24 @@
 from id3vx.codec import Codec
 
 
+class IntegerField:
+    def __init__(self, value):
+        self._value = value
+
+    def __int__(self):
+        return self._value
+
+    @classmethod
+    def read(cls, stream, length=4):
+        return int.from_bytes(stream.read(length), "big")
+
+
+class CodecField:
+    @classmethod
+    def read(cls, stream):
+        return Codec.get(stream.read(1)[0])
+
+
 class BinaryField(object):
     def __init__(self, byte_string):
         self._bytes = byte_string

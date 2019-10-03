@@ -1,8 +1,51 @@
 import unittest
 from io import BytesIO
 
-from id3vx.codec import UTF16Codec
-from id3vx.fields import BinaryField, TextField, EncodedTextField
+from id3vx.codec import UTF16Codec, Codec
+from id3vx.fields import BinaryField, TextField
+from id3vx.fields import EncodedTextField, CodecField, IntegerField
+
+
+class CodecFieldTests(unittest.TestCase):
+    def test_read_default_codec_from_stream(self):
+        # Arrange
+        byte_string = b'\x00hallowelt\x00'
+
+        # Act
+        codec = CodecField.read(BytesIO(byte_string))
+
+        # Assert
+        self.assertEqual(codec, Codec.default())
+
+    def test_read_utf16_codec_from_stream(self):
+        # Arrange
+        byte_string = b'\x01\xff\xfea\x00b\00'
+
+        # Act
+        codec = CodecField.read(BytesIO(byte_string))
+
+        # Assert
+        self.assertEqual(codec, Codec.get(1))
+
+    def test_read_utf16be_codec_from_stream(self):
+        # Arrange
+        byte_string = b'\x02\xff\xfea\x00b\00'
+
+        # Act
+        codec = CodecField.read(BytesIO(byte_string))
+
+        # Assert
+        self.assertEqual(codec, Codec.get(2))
+
+    def test_read_utf8_codec_from_stream(self):
+        # Arrange
+        byte_string = b'\x02\xff\xfea\x00b\00'
+
+        # Act
+        codec = CodecField.read(BytesIO(byte_string))
+
+        # Assert
+        self.assertEqual(codec, Codec.get(2))
 
 
 class BinaryFieldTests(unittest.TestCase):
@@ -122,20 +165,8 @@ class EncodedTextFieldTests(unittest.TestCase):
         self.assertEqual(text, "")
 
 
-class IntegerField:
-    def __init__(self, value):
-        self._value = value
-
-    def __int__(self):
-        return self._value
-
-    @classmethod
-    def read(cls, stream):
-        return int.from_bytes(stream.read(4), "big")
-
-
 class IntegerFieldTests(unittest.TestCase):
-    def test_reads_full_int(self):
+    def test_reads_four_byte_int(self):
         """Reads 4 byte integer from stream"""
         # Arrange
         byte_string = b'\x00\x00\xff\xff'
@@ -153,6 +184,40 @@ class IntegerFieldTests(unittest.TestCase):
         # Assert
         self.assertEqual(value, expected_int)
         self.assertEqual(stream.read(), remainder)
+
+    def test_reads_n_byte_int(self):
+        """Reads a zero from empty stream"""
+        # Arrange
+        byte_string = b'\xff\xee\xcc\xdd'
+        expected_int = 0xffeecc
+
+        stream = BytesIO(byte_string)
+
+        # System under test - Act
+        field = IntegerField.read(stream, length=3)
+
+        # Act
+        value = int(field)
+
+        # Assert
+        self.assertEqual(value, expected_int)
+
+    def test_reads_single_byte_int(self):
+        """Reads a zero from empty stream"""
+        # Arrange
+        byte_string = b'\xff\xee\xcc\xdd'
+        expected_int = 0xff
+
+        stream = BytesIO(byte_string)
+
+        # System under test - Act
+        field = IntegerField.read(stream, length=1)
+
+        # Act
+        value = int(field)
+
+        # Assert
+        self.assertEqual(value, expected_int)
 
     def test_reads_empty_stream(self):
         """Reads a zero from empty stream"""

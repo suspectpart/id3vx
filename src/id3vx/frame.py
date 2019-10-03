@@ -6,6 +6,7 @@ from enum import IntFlag
 from io import BytesIO
 
 from id3vx.binary import unsynchsafe
+from id3vx.fields import TextField, BinaryField
 from .codec import Codec
 from .text import shorten
 
@@ -273,17 +274,20 @@ class PrivateFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._owner, self._data = Codec.default().split(fields, 1)
+        stream = BytesIO(fields)
+
+        self._owner = TextField.read(stream)
+        self._data = BinaryField.read(stream)
 
     @staticmethod
     def represents(identifier):
         return identifier == b'PRIV'
 
     def owner(self):
-        return Codec.default().decode(self._owner)
+        return str(self._owner)
 
     def data(self):
-        return self._data
+        return bytes(self._data)
 
     def __str__(self):
         return f'[owner {self.owner()}] {self.data()}'
