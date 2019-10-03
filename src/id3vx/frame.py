@@ -148,6 +148,17 @@ class AttachedPictureFrame(Frame):
         return identifier == b'APIC'
 
 
+class MusicCDIdentifierFrame(Frame):
+    """A Music CD Identifier Frame (MCDI)"""
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'MCDI'
+
+    def toc(self):
+        """TOC of Music CD"""
+        return self.fields()
+
+
 class PrivateFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
@@ -444,5 +455,6 @@ FRAMES_PIPE = [
     AttachedPictureFrame,
     PicardFrame,
     TextFrame,
+    MusicCDIdentifierFrame,
     Frame,
 ]
