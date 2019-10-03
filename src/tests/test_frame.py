@@ -1,7 +1,8 @@
 import unittest
 from io import BytesIO
 
-from id3vx.frame import FrameHeader, Frame, TextFrame, PrivateFrame, Frames
+from id3vx.frame import FrameHeader, Frame, TextFrame, PrivateFrame, \
+    Frames, AttachedPictureFrame as ApicFrame
 from id3vx.tag import TagHeader
 
 
@@ -253,3 +254,36 @@ class FrameTests(unittest.TestCase):
         self.assertEqual(type(frame), TextFrame)
         self.assertEqual(frame.id(), "TALB")
         self.assertEqual(frame.text(), "Album")
+
+
+class AttachedPictureFrameTests(unittest.TestCase):
+    def test_initialize_from_fields(self):
+        # Arrange
+        header = FrameHeader(b'APIC', 1000, 0)
+
+        encoding = b'\x02'
+        mime_type = b'image/paper\x00'
+        picture_type = b'\x11'  # bright colored fish
+        description = "You can see a fish here"
+        desc_bytes = description.encode("utf-16-be") + b'\x00\x00'
+        data = b'\xFF\xD8\xFF\xE0\x00\x10\x4A\x46\x49\x46\x00\x01'
+
+        fields = encoding + mime_type + picture_type + desc_bytes + data
+
+        expected_pic_type = ApicFrame.PictureType.BRIGHT_COLORED_FISH
+        expected_mime_type = "image/paper"
+
+        # System under test
+        frame = ApicFrame(header, fields)
+
+        # Act - Assert
+        self.assertEqual(type(frame), ApicFrame)
+        self.assertEqual(frame.description(), description)
+        self.assertEqual(frame.picture_type(), expected_pic_type)
+        self.assertEqual(frame.mime_type(), "image/paper")
+        self.assertEqual(frame.data(), data)
+
+        self.assertIn(description, str(frame))
+        self.assertIn(str(data), str(frame))
+        self.assertIn(str(expected_pic_type), str(frame))
+        self.assertIn(expected_mime_type, str(frame))

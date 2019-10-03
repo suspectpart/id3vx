@@ -184,26 +184,26 @@ class AttachedPictureFrame(Frame):
     """
 
     class PictureType(enum.Enum):
-        OTHER = 0x00  # "Other"
-        ICON = 0x01  # "32x32 pixels 'file icon' (PNG only)"
-        OTHER_ICON = 0x02  # "Other file icon"
-        FRONT_COVER = 0x03  # "Cover (front)"
-        BACK_COVER = 0x04  # "Cover (back)"
-        LEAFLET = 0x05  # "Leaflet page"
-        MEDIA = 0x06  # "Media (e.g. lable side of CD)"
-        LEAD_ARTIST = 0x07  # "Lead artist/lead performer/soloist"
-        ARTIST = 0x08  # "Artist/performer"
-        CONDUCTOR = 0x09  # "Conductor"
-        BAND = 0x0A  # "Band/Orchestra"
-        COMPOSER = 0x0B  # "Composer"
-        LYRICIST = 0x0C  # "Lyricist/text writer"
-        RECORD_LOCATION = 0x0D  # "Recording Location"
-        DURING_LOCATION = 0x0E  # "During recording"
-        DURING_PERFORMANCE = 0x0F  # "During performance"
-        SCREEN_CAPTURE = 0x10  # "Movie/video screen capture"
+        OTHER = 0x00                # "Other"
+        ICON = 0x01                 # "32x32 pixels 'file icon' (PNG only)"
+        OTHER_ICON = 0x02           # "Other file icon"
+        FRONT_COVER = 0x03          # "Cover (front)"
+        BACK_COVER = 0x04           # "Cover (back)"
+        LEAFLET = 0x05              # "Leaflet page"
+        MEDIA = 0x06                # "Media (e.g. lable side of CD)"
+        LEAD_ARTIST = 0x07          # "Lead artist/lead performer/soloist"
+        ARTIST = 0x08               # "Artist/performer"
+        CONDUCTOR = 0x09            # "Conductor"
+        BAND = 0x0A                 # "Band/Orchestra"
+        COMPOSER = 0x0B             # "Composer"
+        LYRICIST = 0x0C             # "Lyricist/text writer"
+        RECORD_LOCATION = 0x0D      # "Recording Location"
+        DURING_LOCATION = 0x0E      # "During recording"
+        DURING_PERFORMANCE = 0x0F   # "During performance"
+        SCREEN_CAPTURE = 0x10       # "Movie/video screen capture"
         BRIGHT_COLORED_FISH = 0x11  # "A bright coloured fish"
-        ILLUSTRATION = 0x12  # "Illustration"
-        BAND_LOGO_TYPE = 0x13  # "Band/artist logotype"
+        ILLUSTRATION = 0x12         # "Illustration"
+        BAND_LOGO_TYPE = 0x13       # "Band/artist logotype"
         PUBLISHER_LOGO_TYPE = 0x14  # "Publisher/Studio logotype"
 
     @staticmethod
@@ -213,7 +213,13 @@ class AttachedPictureFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
+        # There are some tags that contain only null bytes \x00\x00\x00
+        # right before the data starts. Parsing them causes all the fields
+        # to be slightly off, e.g. the JPEG header slips into the description,
+        # reading ÿØÿà. kid3 and eyeD3 Have the same issue, so that seems to
+        # be violating spec and it's not just me being stupid.
         self._codec = Codec.get(fields[0])
+
         mime_type, remainder = Codec.default().split(fields[1:], 1)
         description, self._data = self._codec.split(remainder[1:], 1)
 
