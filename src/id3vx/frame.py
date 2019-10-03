@@ -220,13 +220,12 @@ class AttachedPictureFrame(Frame):
         # to be slightly off, e.g. the JPEG header slips into the description,
         # reading ÿØÿà. kid3 and eyeD3 Have the same issue, so that seems to
         # be a violation of the spec and it's not just me being stupid.
-        stream = BytesIO(fields)
-
-        self._codec = CodecField.read(stream)
-        self._mime_type = TextField.read(stream)
-        self._picture_type = IntegerField.read(stream, length=1)
-        self._description = EncodedTextField.read(stream, codec=self._codec)
-        self._data = BinaryField.read(stream)
+        with BytesIO(fields) as stream:
+            self._codec = CodecField.read(stream)
+            self._mime_type = TextField.read(stream)
+            self._picture_type = IntegerField.read(stream, 1)
+            self._description = EncodedTextField.read(stream, self._codec)
+            self._data = BinaryField.read(stream)
 
     def picture_type(self):
         return self.PictureType(int(self._picture_type))
@@ -274,10 +273,9 @@ class PrivateFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        stream = BytesIO(fields)
-
-        self._owner = TextField.read(stream)
-        self._data = BinaryField.read(stream)
+        with BytesIO(fields) as stream:
+            self._owner = TextField.read(stream)
+            self._data = BinaryField.read(stream)
 
     @staticmethod
     def represents(identifier):
@@ -310,10 +308,9 @@ class TextFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        stream = BytesIO(fields)
-
-        self._codec = CodecField.read(stream)
-        self._text = EncodedTextField.read(stream, codec=self._codec)
+        with BytesIO(fields) as stream:
+            self._codec = CodecField.read(stream)
+            self._text = EncodedTextField.read(stream, codec=self._codec)
 
     @staticmethod
     def represents(identifier):
@@ -389,11 +386,10 @@ class UserDefinedURLLinkFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        stream = BytesIO(fields)
-
-        self._codec = CodecField.read(stream)
-        self._description = EncodedTextField.read(stream, self._codec)
-        self._url = TextField.read(stream)
+        with BytesIO(fields) as stream:
+            self._codec = CodecField.read(stream)
+            self._description = EncodedTextField.read(stream, self._codec)
+            self._url = TextField.read(stream)
 
     @staticmethod
     def represents(identifier):

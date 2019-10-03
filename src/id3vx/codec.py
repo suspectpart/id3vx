@@ -1,6 +1,6 @@
 class Codec:
     ENCODING: str
-    separator: bytes
+    SEPARATOR: bytes
     WIDTH: int
 
     @staticmethod
@@ -20,6 +20,7 @@ class Codec:
         return _CODECS[key]
 
     def read(self, stream, length=1):
+        """Read chars from stream, according to encoding"""
         return stream.read(self.WIDTH * length)
 
     def decode(self, byte_string):
@@ -28,16 +29,7 @@ class Codec:
 
     def encode(self, byte_string):
         """Decode byte_string with given encoding"""
-        return byte_string.encode(self.ENCODING) + self.separator
-
-    def split(self, byte_string, maxsplit=None):
-        """Splits a string at separator"""
-        return byte_string.split(self.separator, maxsplit or -1)
-
-    def split_decode(self, byte_string: bytes, tokens=None):
-        """Split byte_string at separator and decode the parts"""
-        parts = self.split(byte_string)[:tokens]
-        return (self.decode(part) for part in parts)
+        return byte_string.encode(self.ENCODING) + self.SEPARATOR
 
     def __str__(self):
         return self.ENCODING
@@ -48,37 +40,26 @@ class Codec:
 
 class Latin1Codec(Codec):
     ENCODING = "latin1"
-    separator = b'\x00'
+    SEPARATOR = b'\x00'
     WIDTH = 1
 
 
 class UTF8Codec(Codec):
     ENCODING = "utf_8"
-    separator = b'\x00'
+    SEPARATOR = b'\x00'
     WIDTH = 1
 
 
 class UTF16BECodec(Codec):
     ENCODING = "utf_16_be"
-    separator = b'\x00\x00'
+    SEPARATOR = b'\x00\x00'
     WIDTH = 2
 
 
 class UTF16Codec(Codec):
     ENCODING = "utf_16"
-    separator = b'\x00\x00'
+    SEPARATOR = b'\x00\x00'
     WIDTH = 2
-
-    def split(self, byte_string, maxsplit=None):
-        # rsplit because UTF-16LE can cause three successive null bytes
-        # e.g. "abc" is encoded as b'a\x00b\x00\c\x00\x00\x00'
-        parts = byte_string.rsplit(self.separator)
-
-        if not maxsplit:
-            return parts
-
-        # pick maxsplit parts and join the rest back together
-        return [*parts[:maxsplit], self.separator.join(parts[maxsplit:])]
 
 
 _CODECS = {

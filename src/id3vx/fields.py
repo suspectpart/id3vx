@@ -40,7 +40,7 @@ class TextField:
         text_bytes = bytearray()
 
         char = codec.read(stream)
-        while char and (char != codec.separator):
+        while char and (char != codec.SEPARATOR):
             text_bytes += char
             char = codec.read(stream)
 
