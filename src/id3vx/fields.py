@@ -62,7 +62,7 @@ class FixedLengthTextField:
 
     @classmethod
     def read(cls, stream, length):
-        byte_string = Codec.default().read(stream, length=length)
+        byte_string = Codec.default().read(stream, length)
 
         return cls(Codec.default().decode(byte_string))
 

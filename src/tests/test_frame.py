@@ -4,7 +4,7 @@ from io import BytesIO
 
 from id3vx.frame import FrameHeader, Frame, TextFrame, PrivateFrame, \
     Frames, AttachedPictureFrame as ApicFrame, \
-    ChapterFrame, MusicCDIdentifierFrame, MusicMatchMysteryFrame
+    ChapterFrame, MusicCDIdentifierFrame, MusicMatchMysteryFrame, CommentFrame
 from id3vx.tag import TagHeader
 
 
@@ -389,3 +389,22 @@ class MusicMatchMysteryFrameTests(unittest.TestCase):
         self.assertEqual(type(frame), MusicMatchMysteryFrame)
         self.assertEqual(fields, frame.fields())
         self.assertTrue(frame.represents(b'NCON'))
+
+
+class CommentFrameTests(unittest.TestCase):
+    def test_reads_from_file(self):
+        # Arrange
+        header = b'COMM\x00\x00\x00\x0a\x00\x00'
+        fields = b'\x01\x65\x6e\x67\xff\xfe\x00\x00\xff\xfe'
+
+        stream = BytesIO(header + fields)
+
+        # Act
+        frame = Frame.from_file(stream)
+
+        # Assert
+        self.assertEqual(type(frame), CommentFrame)
+        self.assertEqual(frame.id(), 'COMM')
+        self.assertEqual(frame.language(), 'eng')
+        self.assertEqual(frame.description(), '')
+        self.assertEqual(frame.comment(), '')

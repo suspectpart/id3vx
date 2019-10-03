@@ -173,7 +173,7 @@ class Frame:
 
 
 class AttachedPictureFrame(Frame):
-    """An attached picture frame (APIC)
+    """Attached picture frame (APIC)
 
     <Header for 'Attached picture', ID: "APIC">
     Text encoding   $xx
@@ -249,6 +249,9 @@ class AttachedPictureFrame(Frame):
 class MusicCDIdentifierFrame(Frame):
     """A Music CD Identifier Frame (MCDI)
 
+    <Header for 'Music CD identifier', ID: "MCDI">
+    CD TOC <binary data>
+
     See `specification <http://id3.org/id3v2.3.0#Music_CD_identifier>`_
     """
 
@@ -257,7 +260,6 @@ class MusicCDIdentifierFrame(Frame):
         return identifier == b'MCDI'
 
     def toc(self):
-        """TOC of Music CD"""
         return self.fields()
 
 
@@ -270,6 +272,14 @@ class MusicMatchMysteryFrame(Frame):
 
 
 class PrivateFrame(Frame):
+    """Private frame (PRIV)
+
+    <Header for 'Private frame', ID: "PRIV">
+    Owner identifier        <text string> $00
+    The private data        <binary data>
+
+    See `specification <http://id3.org/id3v2.3.0#Private_frame>`_
+    """
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -292,7 +302,14 @@ class PrivateFrame(Frame):
 
 
 class UFIDFrame(PrivateFrame):
-    """A Unique file identifier frame (UFID)"""
+    """Unique file identifier frame (UFID)
+
+    <Header for 'Unique file identifier', ID: "UFID">
+    Owner identifier    <text string> $00
+    Identifier          <up to 64 bytes binary data>
+
+    See `specification <http://id3.org/id3v2.3.0#Unique_file_identifier>`_
+    """
 
     @staticmethod
     def represents(identifier):
@@ -300,9 +317,14 @@ class UFIDFrame(PrivateFrame):
 
 
 class TextFrame(Frame):
-    """A text frame (T___)
+    """A text information frame (T000 - TZZZ)
 
-    Decodes all of the frame with the encoding read from the first byte.
+    <Header for 'Text information frame', ID: "T000" - "TZZZ",
+    excluding "TXXX" described in 4.2.2.>
+    Text encoding   $xx
+    Information     <text string according to encoding>
+
+    See `specification <http://id3.org/id3v2.3.0#Text_information_frames>`_
     """
 
     def __init__(self, header, fields):
@@ -334,17 +356,22 @@ class PicardFrame(TextFrame):
         return identifier in [b'XSOA', b'XSOP', b'XSOT']
 
 
-class UserDefinedTextFrame(TextFrame):
-    """A user defined text frame (TXXX)
+class UserDefinedTextFrame(Frame):
+    """User defined text information frame (TXXX)
 
     <Header for 'User defined text information frame', ID: "TXXX">
     Text encoding   $xx
     Description     <text string according to encoding> $00 (00)
-    Value           <text string according to encoding>"""
+    Value           <text string according to encoding>
+
+    See `specification
+    <http://id3.org/id3v2.3.0#User_defined_text_information_frame>`_
+    """
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        with BytesIO(fields[1:]) as stream:
+        with BytesIO(fields) as stream:
+            self._codec = CodecField.read(stream)
             self._description = EncodedTextField.read(stream, self._codec)
             self._text = EncodedTextField.read(stream, self._codec)
 
@@ -363,6 +390,14 @@ class UserDefinedTextFrame(TextFrame):
 
 
 class URLLinkFrame(Frame):
+    """Url link Frame (W000 - WZZZ)
+
+    <Header for 'URL link frame', ID: "W000" - "WZZZ",
+    excluding "WXXX" described in 4.3.2.>
+    URL <text string>
+
+    See `specification <http://id3.org/id3v2.3.0#URL_link_frames>`_
+    """
     def url(self):
         return Codec.default().decode(self.fields())
 
@@ -381,6 +416,9 @@ class UserDefinedURLLinkFrame(Frame):
     Text encoding    $xx
     Description     <text string according to encoding> $00 (00)
     URL             <text string>
+
+    See `specification
+    <http://id3.org/id3v2.3.0#User_defined_URL_link_frame>`_
     """
 
     def __init__(self, header, fields):
@@ -405,7 +443,7 @@ class UserDefinedURLLinkFrame(Frame):
         return f'[description {self.description()}] {self.url()}'
 
 
-class CommentFrame(TextFrame):
+class CommentFrame(Frame):
     """Comment Frame (COMM)
 
     <Header for 'Comment', ID: "COMM">
@@ -413,12 +451,15 @@ class CommentFrame(TextFrame):
     Language                   $xx xx xx
     Short content descrip.     <text string according to encoding> $00 (00)
     The actual text            <full text string according to encoding>
+
+    See `specification <http://id3.org/id3v2.3.0#Comments>`_
     """
 
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        with BytesIO(fields[1:]) as stream:
+        with BytesIO(fields) as stream:
+            self._codec = CodecField.read(stream)
             self._language = FixedLengthTextField.read(stream, 3)
             self._description = EncodedTextField.read(stream, self._codec)
             self._comment = EncodedTextField.read(stream, self._codec)
