@@ -6,7 +6,8 @@ from enum import IntFlag
 from io import BytesIO
 
 from id3vx.binary import unsynchsafe
-from id3vx.fields import TextField, BinaryField, CodecField, EncodedTextField
+from id3vx.fields import TextField, BinaryField
+from id3vx.fields import CodecField, EncodedTextField, IntegerField
 from .codec import Codec
 from .text import shorten
 
@@ -219,26 +220,25 @@ class AttachedPictureFrame(Frame):
         # to be slightly off, e.g. the JPEG header slips into the description,
         # reading ÿØÿà. kid3 and eyeD3 Have the same issue, so that seems to
         # be violating spec and it's not just me being stupid.
-        self._codec = Codec.get(fields[0])
+        stream = BytesIO(fields)
 
-        mime_type, remainder = Codec.default().split(fields[1:], 1)
-        description, self._data = self._codec.split(remainder[1:], 1)
-
-        self._picture_type = self.PictureType(remainder[0])
-        self._description = self._codec.decode(description)
-        self._mime_type = Codec.default().decode(mime_type)
+        self._codec = CodecField.read(stream)
+        self._mime_type = TextField.read(stream)
+        self._picture_type = IntegerField.read(stream, length=1)
+        self._description = EncodedTextField.read(stream, codec=self._codec)
+        self._data = BinaryField.read(stream)
 
     def picture_type(self):
-        return self._picture_type
+        return self.PictureType(self._picture_type)
 
     def description(self):
-        return self._description
+        return str(self._description)
 
     def mime_type(self):
-        return self._mime_type
+        return str(self._mime_type)
 
     def data(self):
-        return self._data
+        return bytes(self._data)
 
     def __str__(self):
         return f"[mime-type={self.mime_type()}]" \
@@ -358,34 +358,44 @@ class UserDefinedTextFrame(TextFrame):
 
 
 class URLLinkFrame(Frame):
-    def __str__(self):
+    def url(self):
         return Codec.default().decode(self.fields())
+
+    def __str__(self):
+        return self.url()
 
     @staticmethod
     def represents(identifier):
         return identifier == b'WOAR'
 
 
-class UserDefinedURLLinkFrame(TextFrame):
+class UserDefinedURLLinkFrame(Frame):
     """A User Defined URL Frame (WXXX)
 
-    Reads comment and description from an already decoded TextFrame.
+    <Header for 'User defined URL link frame', ID: "WXXX">
+    Text encoding    $xx
+    Description     <text string according to encoding> $00 (00)
+    URL             <text string>
     """
 
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._description, self._url = self._codec.split_decode(fields[1:], 2)
+        stream = BytesIO(fields)
+
+        self._codec = CodecField.read(stream)
+        self._description = EncodedTextField.read(stream, self._codec)
+        self._url = TextField.read(stream)
 
     @staticmethod
     def represents(identifier):
         return identifier == b'WXXX'
 
     def description(self):
-        return self._description
+        return str(self._description)
 
     def url(self):
-        return self._url
+        return str(self._url)
 
     def __str__(self):
         return f'[description {self.description()}] {self.url()}'
