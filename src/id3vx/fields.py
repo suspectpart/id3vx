@@ -1,0 +1,38 @@
+from id3vx.codec import Codec
+
+
+class BinaryField(object):
+    def __init__(self, byte_string):
+        self._bytes = byte_string
+
+    @classmethod
+    def read(cls, stream):
+        return cls(stream.read())
+
+    def __bytes__(self):
+        return self._bytes
+
+
+class TextField:
+    def __init__(self, text):
+        self._text = text
+
+    @classmethod
+    def read(cls, stream, codec=Codec.default()):
+        text_bytes = bytearray()
+
+        char = codec.read(stream)
+        while char and (char != codec.separator):
+            text_bytes += char
+            char = codec.read(stream)
+
+        return codec.decode(text_bytes)
+
+    def __str__(self):
+        return self._text
+
+
+class EncodedTextField(TextField):
+    @classmethod
+    def read(cls, stream, codec=Codec.default()):
+        return super().read(stream, codec)

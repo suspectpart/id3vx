@@ -1,6 +1,7 @@
 class Codec:
-    encoding: str
+    ENCODING: str
     separator: bytes
+    WIDTH: int
 
     @staticmethod
     def default():
@@ -18,13 +19,16 @@ class Codec:
         """
         return _CODECS[key]
 
+    def read(self, stream):
+        return stream.read(self.WIDTH)
+
     def decode(self, byte_string):
         """Decode byte_string with given encoding"""
-        return byte_string.decode(self.encoding)
+        return byte_string.decode(self.ENCODING)
 
     def encode(self, byte_string):
         """Decode byte_string with given encoding"""
-        return byte_string.encode(self.encoding) + self.separator
+        return byte_string.encode(self.ENCODING) + self.separator
 
     def split(self, byte_string, maxsplit=None):
         """Splits a string at separator"""
@@ -36,30 +40,34 @@ class Codec:
         return (self.decode(part) for part in parts)
 
     def __str__(self):
-        return self.encoding
+        return self.ENCODING
 
     def __eq__(self, other):
         return str(self) == str(other)
 
 
 class Latin1Codec(Codec):
-    encoding = "latin1"
+    ENCODING = "latin1"
     separator = b'\x00'
+    WIDTH = 1
 
 
 class UTF8Codec(Codec):
-    encoding = "utf_8"
+    ENCODING = "utf_8"
     separator = b'\x00'
+    WIDTH = 1
 
 
 class UTF16BECodec(Codec):
-    encoding = "utf_16_be"
+    ENCODING = "utf_16_be"
     separator = b'\x00\x00'
+    WIDTH = 2
 
 
 class UTF16Codec(Codec):
-    encoding = "utf_16"
+    ENCODING = "utf_16"
     separator = b'\x00\x00'
+    WIDTH = 2
 
     def split(self, byte_string, maxsplit=None):
         # rsplit because UTF-16LE can cause three successive null bytes
