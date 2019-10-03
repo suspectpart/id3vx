@@ -18,7 +18,7 @@ class FrameHeaderTests(unittest.TestCase):
         header = FrameHeader.read_from(stream)
 
         # Assert
-        self.assertEqual(header.size(), 255)
+        self.assertEqual(header.frame_size(), 255)
         self.assertEqual(header.flags(), FrameHeader.Flags(0))
         self.assertEqual(header.id(), frame_id)
 
@@ -63,16 +63,16 @@ class FrameHeaderTests(unittest.TestCase):
         """Reads FrameHeader as long as size is present"""
         # Arrange
         frame_id = b'\x00\x00\x00\x00'
-        size = b'\x00\x00\x00\x01'
+        frame_size = b'\x00\x00\x00\x01'
         flags = b'\x00\x00'
 
-        stream = BytesIO(frame_id + size + flags)
+        stream = BytesIO(frame_id + frame_size + flags)
 
         # Act
         header = FrameHeader.read_from(stream)
 
         # Assert
-        self.assertEqual(header.size(), 1)
+        self.assertEqual(header.frame_size(), 1)
         self.assertEqual(header.id(), frame_id)
         self.assertEqual(header.flags(), FrameHeader.Flags(0))
 

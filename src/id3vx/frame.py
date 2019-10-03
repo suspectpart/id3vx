@@ -35,7 +35,7 @@ class FrameHeader:
     @classmethod
     def read_from(cls, mp3, unsynchronize_size=False):
         try:
-            block = mp3.read(10)
+            block = mp3.read(FrameHeader.SIZE)
             identifier, size, flags = struct.unpack('>4sLH', block)
 
             # FIXME: hacky, handed down all the way. needs some polymorphism
@@ -45,9 +45,9 @@ class FrameHeader:
         except struct.error:
             return None
 
-    def __init__(self, identifier, size, flags):
+    def __init__(self, identifier, frame_size, flags):
         self._id = identifier
-        self._size = size
+        self._frame_size = frame_size
         self._flags = flags
 
     def flags(self):
@@ -56,17 +56,23 @@ class FrameHeader:
     def id(self):
         return self._id
 
-    def size(self):
+    def frame_size(self):
         """Overall frame size excluding the 10 bytes header size"""
-        return self._size
+        return self._frame_size
 
     def __repr__(self):
         return f'FrameHeader(id={self.id()},' \
-               f'size={self.size()},' \
+               f'size={self.frame_size()},' \
                f'flags={str(self.flags())})'
 
     def __bytes__(self):
-        return struct.pack('>4sLH', self.id(), self.size(), int(self.flags()))
+        return struct.pack('>4sLH',
+                           self.id(),
+                           self.frame_size(),
+                           int(self.flags()))
+
+    def __len__(self):
+        return FrameHeader.SIZE
 
 
 class Frame:
@@ -84,7 +90,7 @@ class Frame:
         if not header:
             return None
 
-        fields = mp3.read(header.size())
+        fields = mp3.read(header.frame_size())
         cls_ = next(f for f in FRAMES_PIPE if f.represents(header.id()))
 
         return cls_(header, fields)
@@ -121,7 +127,7 @@ class Frame:
 
     def __len__(self):
         """The overall size of the frame in bytes, including header."""
-        return FrameHeader.SIZE + self.header().size()
+        return len(self.header()) + self.header().frame_size()
 
     def __str__(self):
         return str(self.fields())

@@ -39,7 +39,7 @@ class TagHeaderTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(len(header), 10)
-        self.assertEqual(header.tag_size(), 1010)
+        self.assertEqual(header.tag_size(), 1000)
         self.assertEqual(header.version(), (major, minor))
         self.assertEqual(header.flags(), flags)
 
@@ -51,7 +51,7 @@ class TagHeaderTest(unittest.TestCase):
 
         flags = f.Experimental | f.Extended
         version = (3, 1)
-        expected_tag_size = unsynchsafe(0x0A0A + 10)
+        expected_tag_size = unsynchsafe(0x0A0A)
 
         # System under test / Act
         header = TagHeader.read_from(BytesIO(byte_string))

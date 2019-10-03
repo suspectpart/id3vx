@@ -80,7 +80,7 @@ class TagHeader:
         than the `tag size specification
         <http://id3.org/id3v2.3.0#ID3v2_header>`_ that excludes the header size
         """
-        return len(self) + self._tag_size
+        return self._tag_size
 
     def __repr__(self):
         major, minor = self.version()
@@ -93,7 +93,7 @@ class TagHeader:
                            bytes(TagHeader.ID3_IDENTIFIER, "latin1"),
                            *self.version(),
                            self.flags(),
-                           synchsafe(self.tag_size() - len(self)))
+                           synchsafe(self.tag_size()))
 
     def __len__(self):
         return TagHeader.SIZE
@@ -150,7 +150,7 @@ class Tag:
 
     def __len__(self):
         """The overall size of the tag in bytes, including header."""
-        return self.header().tag_size()
+        return self.header().tag_size() + len(self.header())
 
     def __repr__(self):
         return f"Tag({repr(self.header())},size={len(self)})"
