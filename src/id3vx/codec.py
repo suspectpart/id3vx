@@ -19,8 +19,8 @@ class Codec:
         """
         return _CODECS[key]
 
-    def read(self, stream):
-        return stream.read(self.WIDTH)
+    def read(self, stream, length=1):
+        return stream.read(self.WIDTH * length)
 
     def decode(self, byte_string):
         """Decode byte_string with given encoding"""

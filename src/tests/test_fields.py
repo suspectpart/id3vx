@@ -2,8 +2,31 @@ import unittest
 from io import BytesIO
 
 from id3vx.codec import UTF16Codec, Codec
-from id3vx.fields import BinaryField, TextField
+from id3vx.fields import BinaryField, TextField, FixedLengthTextField
 from id3vx.fields import EncodedTextField, CodecField, IntegerField
+
+
+class FixedLengthTextFieldTests(unittest.TestCase):
+    def test_read_string_from_stream(self):
+        # Arrange
+        byte_string = b'hallowelt'
+        length = 5
+
+        # Act
+        field = FixedLengthTextField.read(BytesIO(byte_string), length)
+
+        # Assert
+        self.assertEqual(str(field), "hallo")
+
+    def test_read_empty_string_from_stream(self):
+        # Arrange
+        byte_string = b'hallowelt'
+
+        # Act
+        field = FixedLengthTextField.read(BytesIO(byte_string), 0)
+
+        # Assert
+        self.assertEqual(str(field), "")
 
 
 class CodecFieldTests(unittest.TestCase):
@@ -210,7 +233,7 @@ class IntegerFieldTests(unittest.TestCase):
 
         stream = BytesIO(byte_string)
 
-        # System under test - Act
+        # System under test
         field = IntegerField.read(stream, length=1)
 
         # Act
@@ -223,8 +246,6 @@ class IntegerFieldTests(unittest.TestCase):
         """Reads a zero from empty stream"""
         # Arrange
         byte_string = b''
-        expected_int = 0
-
         stream = BytesIO(byte_string)
 
         # System under test - Act
@@ -234,4 +255,4 @@ class IntegerFieldTests(unittest.TestCase):
         value = int(field)
 
         # Assert
-        self.assertEqual(value, expected_int)
+        self.assertEqual(value, 0)

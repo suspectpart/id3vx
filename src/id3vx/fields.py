@@ -54,3 +54,17 @@ class EncodedTextField(TextField):
     @classmethod
     def read(cls, stream, codec=Codec.default()):
         return super().read(stream, codec)
+
+
+class FixedLengthTextField:
+    def __init__(self, text):
+        self._text = text
+
+    @classmethod
+    def read(cls, stream, length):
+        byte_string = Codec.default().read(stream, length=length)
+
+        return cls(Codec.default().decode(byte_string))
+
+    def __str__(self):
+        return self._text

@@ -6,7 +6,7 @@ from enum import IntFlag
 from io import BytesIO
 
 from id3vx.binary import unsynchsafe
-from id3vx.fields import TextField, BinaryField
+from id3vx.fields import TextField, BinaryField, FixedLengthTextField
 from id3vx.fields import CodecField, EncodedTextField, IntegerField
 from .codec import Codec
 from .text import shorten
@@ -412,29 +412,33 @@ class UserDefinedURLLinkFrame(Frame):
 class CommentFrame(TextFrame):
     """Comment Frame (COMM)
 
-    Reads language, description and comment from an already decoded TextFrame.
+    <Header for 'Comment', ID: "COMM">
+    Text encoding              $xx
+    Language                   $xx xx xx
+    Short content descrip.     <text string according to encoding> $00 (00)
+    The actual text            <full text string according to encoding>
     """
 
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
-        self._language = Codec.default().decode(fields[1:4])
-
-        parts = self._codec.split_decode(fields[4:], 2)
-        self._description, self._comment = parts
+        with BytesIO(fields[1:]) as stream:
+            self._language = FixedLengthTextField.read(stream, 3)
+            self._description = EncodedTextField.read(stream, self._codec)
+            self._comment = EncodedTextField.read(stream, self._codec)
 
     @staticmethod
     def represents(identifier):
         return identifier == b'COMM'
 
     def language(self):
-        return self._language
+        return str(self._language)
 
     def description(self):
-        return self._description
+        return str(self._description)
 
     def comment(self):
-        return self._comment
+        return str(self._comment)
 
     def __str__(self):
         return f'[language {self.language()}]' \
