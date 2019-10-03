@@ -159,6 +159,13 @@ class MusicCDIdentifierFrame(Frame):
         return self.fields()
 
 
+class MusicMatchMysteryFrame(Frame):
+    """A mysterious binary frame added by MusicMatch (NCON)"""
+    @staticmethod
+    def represents(identifier):
+        return identifier == b'NCON'
+
+
 class PrivateFrame(Frame):
     def __init__(self, header, fields):
         super().__init__(header, fields)
@@ -455,6 +462,7 @@ FRAMES_PIPE = [
     AttachedPictureFrame,
     PicardFrame,
     TextFrame,
+    MusicMatchMysteryFrame,
     MusicCDIdentifierFrame,
     Frame,
 ]
