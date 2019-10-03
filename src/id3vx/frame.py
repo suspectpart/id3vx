@@ -419,7 +419,18 @@ class CommentFrame(TextFrame):
 
 
 class ChapterFrame(Frame):
-    """Chapter Frame (CHAP)"""
+    """A Chapter frame (CHAP)
+
+    <ID3v2.3 or ID3v2.4 frame header, ID: "CHAP">           (10 bytes)
+    Element ID      <text string> $00
+    Start time      $xx xx xx xx
+    End time        $xx xx xx xx
+    Start offset    $xx xx xx xx
+    End offset      $xx xx xx xx
+    <Optional embedded sub-frames>
+
+    See `specification <http://id3.org/id3v2-chapters-1.0>`_
+    """
 
     Timings = namedtuple("Timings", "start, end, start_offset, end_offset")
 

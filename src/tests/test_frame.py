@@ -1,8 +1,10 @@
+from datetime import timedelta
 import unittest
 from io import BytesIO
 
 from id3vx.frame import FrameHeader, Frame, TextFrame, PrivateFrame, \
-    Frames, AttachedPictureFrame as ApicFrame
+    Frames, AttachedPictureFrame as ApicFrame, \
+    ChapterFrame, MusicCDIdentifierFrame, MusicMatchMysteryFrame
 from id3vx.tag import TagHeader
 
 
@@ -287,3 +289,103 @@ class AttachedPictureFrameTests(unittest.TestCase):
         self.assertIn(str(data), str(frame))
         self.assertIn(str(expected_pic_type), str(frame))
         self.assertIn(expected_mime_type, str(frame))
+
+
+class ChapterFrameTests(unittest.TestCase):
+    def test_initialize_from_fields(self):
+        # Arrange
+        header = FrameHeader(b'CHAP', 1000, 0)
+
+        element_id = 'chp'
+        element_id_bytes = element_id.encode("latin1")
+
+        t_start = b'\x00\xFF\xFF\xEE'
+        t_end = b'\x00\x0A\x0F\xEE'
+        o_start = b'\x00\xFF\xFF\xEE'
+        o_end = b'\x00\x0A\x0F\xEE'
+
+        delta_start = timedelta(milliseconds=int.from_bytes(t_start, "big"))
+        delta_end = timedelta(milliseconds=int.from_bytes(t_end, "big"))
+        offset_start = int.from_bytes(o_start, "big")
+        offset_end = int.from_bytes(t_end, "big")
+
+        fields = element_id_bytes + b'\x00' + t_start + t_end + o_start + o_end
+
+        expected_bytes = bytes(header) + fields
+
+        # System under test
+        frame = ChapterFrame(header, fields)
+
+        # Act - Assert
+        self.assertEqual(type(frame), ChapterFrame)
+        self.assertEqual(frame.element_id(), element_id)
+        self.assertEqual(frame.start(), delta_start)
+        self.assertEqual(frame.end(), delta_end)
+        self.assertEqual(frame.offset_start(), offset_start)
+        self.assertEqual(frame.offset_end(), offset_end)
+        self.assertEqual(bytes(frame), expected_bytes)
+
+        self.assertIn(element_id, str(frame))
+        self.assertIn(str(delta_start), str(frame))
+        self.assertIn(str(delta_end), str(frame))
+        self.assertIn(str(offset_start), str(frame))
+        self.assertIn(str(offset_end), str(frame))
+
+    def test_subframes(self):
+        # Arrange
+        sub_frame_header = FrameHeader(b'TIT2', 1000, 0)
+        sub_frame = TextFrame(sub_frame_header, b'\x00sometext')
+
+        header = FrameHeader(b'CHAP', 1000, 0)
+
+        element_id = 'chp'
+        element_id_bytes = element_id.encode("latin1")
+
+        t_start = b'\x00\xFF\xFF\xEE'
+        t_end = b'\x00\x0A\x0F\xEE'
+        o_start = b'\x00\xFF\xFF\xEE'
+        o_end = b'\x00\x0A\x0F\xEE'
+
+        fields = element_id_bytes + b'\x00' + t_start + t_end + o_start + o_end
+        fields += bytes(sub_frame)
+
+        # System under test
+        frame = ChapterFrame(header, fields)
+
+        # Act
+        sub_frames = list(frame.sub_frames())
+
+        # Act - Assert
+        self.assertEqual(1, len(sub_frames))
+        self.assertEqual('TIT2', sub_frames[0].id())
+        self.assertEqual("sometext", sub_frames[0].text())
+
+
+class MusicCDIdentifierFrameTests(unittest.TestCase):
+    def test_exposes_toc(self):
+        # Arrange
+        header = FrameHeader(b'MCDI', 1000, 0)
+        fields = b'\xf0\xfa\xccsometocdata\xff'
+
+        # System under test
+        frame = MusicCDIdentifierFrame(header, fields)
+
+        # Act - Assert
+        self.assertEqual(type(frame), MusicCDIdentifierFrame)
+        self.assertEqual(fields, frame.toc())
+        self.assertTrue(frame.represents(b'MCDI'))
+
+
+class MusicMatchMysteryFrameTests(unittest.TestCase):
+    def test_exposes_toc(self):
+        # Arrange
+        header = FrameHeader(b'MCDI', 1000, 0)
+        fields = b'\xf0\xfa\xccweirdbinaryblob\xff'
+
+        # System under test
+        frame = MusicMatchMysteryFrame(header, fields)
+
+        # Act - Assert
+        self.assertEqual(type(frame), MusicMatchMysteryFrame)
+        self.assertEqual(fields, frame.fields())
+        self.assertTrue(frame.represents(b'NCON'))
