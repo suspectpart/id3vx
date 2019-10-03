@@ -138,7 +138,8 @@ class FrameTests(unittest.TestCase):
     def test_exposes_fields(self):
         """Exposes relevant fields"""
         # Arrange
-        header = FrameHeader(b'PRIV', 100, 0)
+        frame_size = 100
+        header = FrameHeader(b'PRIV', frame_size, 0)
         fields = b'\x0a\x0f\x00\x0f\x0c'
 
         # System under test
@@ -149,6 +150,7 @@ class FrameTests(unittest.TestCase):
         self.assertEqual(frame.id(), "PRIV")
         self.assertEqual(frame.fields(), fields)
         self.assertEqual(str(frame), str(fields))
+        self.assertEqual(len(frame), frame_size + len(header))
         self.assertEqual(frame.name(), "Private frame")
 
     def test_serializes_to_bytes(self):

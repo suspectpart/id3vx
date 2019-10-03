@@ -7,7 +7,7 @@ class TextTests(unittest.TestCase):
     def test_shorten_text(self):
         # Arrange
         text = "01234567890"
-
+#
         # Act
         shortened = shorten(text, 100)
 

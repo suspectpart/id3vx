@@ -15,6 +15,15 @@ class TagHeaderTest(unittest.TestCase):
         with self.assertRaises(NoTagError):
             TagHeader(wrong_identifier, 0, 0, TagHeader.Flags(0), 0)
 
+    def test_raises_on_unsynchronization_tags(self):
+        """Rejects tags using unsychronization"""
+        # Arrange
+        flags = TagHeader.Flags.Sync
+
+        # Act - Assert
+        with self.assertRaises(UnsupportedError):
+            TagHeader(b'ID3', 3, 0, flags, 0)
+
     def test_raises_on_unsupported_version(self):
         """Fails to initialize on wrong identifier"""
         # Arrange
