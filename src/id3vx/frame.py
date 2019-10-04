@@ -164,8 +164,9 @@ class Frame:
         return len(self.header) + self.header.frame_size()
 
     def __repr__(self):
-        annotations = self.__annotations__
-        attrs = "".join(f"[{a}={shorten(str(self.__dict__[a]))}]" for a in annotations)
+        fields = self.__annotations__
+        values = ((f, shorten(str(self.__dict__[f]))) for f in fields)
+        attrs = "".join(f"[{k}={v}]" for k, v in values)
 
         return f'{type(self).__name__}({repr(self.header)}) {attrs}'
 
@@ -429,9 +430,9 @@ class USLT(Frame):
 
     FIELDS = Fields(
         CodecField(),
-        FixedLengthTextField("_language", 3),
-        EncodedTextField("_description"),
-        EncodedTextField("_lyrics"),
+        FixedLengthTextField("language", 3),
+        EncodedTextField("description"),
+        EncodedTextField("lyrics"),
     )
 
 
