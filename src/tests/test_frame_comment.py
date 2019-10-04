@@ -8,7 +8,7 @@ class CommentFrameTests(unittest.TestCase):
         """Decodes all comment frame fields"""
         # Arrange
         encoding = "utf-16"
-        header = FrameHeader(b'COMM', 0x00FA, 0)
+        header = FrameHeader('COMM', 0x00FA, 0, False)
 
         term = b'\x00\x00'
         codec = b'\x01'
@@ -32,7 +32,7 @@ class CommentFrameTests(unittest.TestCase):
     def test_allow_empty_comment_and_description(self):
         """Allows empty comment and description"""
         # Arrange
-        header = FrameHeader(b'COMM', 0x00FA, 0)
+        header = FrameHeader('COMM', 0x00FA, 0, False)
 
         term = b'\x00\x00'
         codec = b'\x01'

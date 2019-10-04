@@ -42,15 +42,13 @@ class Frames(list):
         super().__init__(args)
 
 
+@dataclass
 class FrameHeader:
     """A single 10-byte ID3v2.3 frame header.
 
     Refer to `ID3v2.3 frame header specification
     <http://id3.org/id3v2.3.0#ID3v2_frame_overview>`_
     """
-
-    SIZE = 10
-
     class Flags(IntFlag):
         """Represents 2-byte flags of the frame header.
 
@@ -65,45 +63,42 @@ class FrameHeader:
         Encryption = 1 << 6
         GroupingIdentity = 1 << 5
 
+    FIELDS = Fields(
+        FixedLengthTextField("identifier", 4),
+        IntegerField("frame_size", 4),
+        EnumField("flags", Flags, 2)
+    )
+
+    SIZE = 10
+
+    identifier: str
+    frame_size: int
+    flags: Flags
+    synchsafe_size: bool
+
     @classmethod
-    def read(cls, stream, unsynchronize_size=False):
-        """Reads a single, 10-byte FrameHeader from a byte stream"""
-        try:
-            block = stream.read(FrameHeader.SIZE)
-            identifier, size, flags = struct.unpack('>4sLH', block)
+    def read(cls, stream, synchsafe_size=False):
+        return cls(**cls.FIELDS.read(stream), synchsafe_size=synchsafe_size)
 
-            # FIXME: hacky, handed down all the way. needs some polymorphism
-            size = unsynchsafe(size) if unsynchronize_size else size
-
-            return cls(identifier, size, flags) if size else None
-        except struct.error:
-            return None
-
-    def __init__(self, identifier, frame_size, flags):
-        self._id = identifier
-        self._frame_size = frame_size
-        self._flags = flags
-
-    def flags(self):
-        return FrameHeader.Flags(self._flags)
-
-    def id(self) -> str:
-        return Codec.default().decode(self._id)
-
-    def frame_size(self):
-        """Overall frame size excluding the 10 bytes header size"""
-        return self._frame_size
-
-    def __repr__(self):
-        return f'FrameHeader(id={self.id()},' \
-               f'size={self.frame_size()},' \
-               f'flags={str(self.flags())})'
+    def __post_init__(self):
+        # Still hacky...
+        if self.synchsafe_size:
+            self.frame_size = unsynchsafe(self.frame_size)
 
     def __bytes__(self):
         return struct.pack('>4sLH',
-                           self.id().encode("latin1"),
-                           self.frame_size(),
-                           int(self.flags()))
+                           self.identifier.encode("latin1"),
+                           self.frame_size,
+                           self.flags)
+
+    def __repr__(self):
+        return f"FrameHeader({self.identifier}," \
+               f"frame_size={self.frame_size}," \
+               f"flags={str(self.flags)}" \
+               f"{['',',synchsafe'][self.synchsafe_size]}"
+
+    def __bool__(self):
+        return self.frame_size > 0
 
     def __len__(self):
         return FrameHeader.SIZE
@@ -122,15 +117,15 @@ class Frame:
     FIELDS = Fields()
 
     @classmethod
-    def read(cls, stream, unsynchronize_size=False):
+    def read(cls, stream, synchsafe_size=False):
         """Reads a single frame from a stream"""
-        header = FrameHeader.read(stream, unsynchronize_size)
+        header = FrameHeader.read(stream, synchsafe_size)
 
         if not header:
             return None
 
-        frame_bytes = stream.read(header.frame_size())
-        frame_class = FRAMES.get(header.id(), Frame)
+        frame_bytes = stream.read(header.frame_size)
+        frame_class = FRAMES.get(header.identifier, Frame)
 
         return frame_class.create_from(header, frame_bytes)
 
@@ -149,11 +144,11 @@ class Frame:
         See `specification <http://id3.org/id3v2.3.0#Declared_ID3v2_frames>`_
         for a full list.
         """
-        return self.header.id()
+        return self.header.identifier
 
     def __len__(self):
         """The overall size of the frame in bytes, including header."""
-        return len(self.header) + self.header.frame_size()
+        return len(self.header) + self.header.frame_size
 
     def __repr__(self):
         fields = self.__annotations__

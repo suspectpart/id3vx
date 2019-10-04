@@ -8,7 +8,7 @@ class TextFrameTests(unittest.TestCase):
     def test_decodes_latin1_frames_with_null_terminator(self):
         """Decodes Latin1 encoded text"""
         # Arrange
-        header = FrameHeader(b'TXXX', 0x00FA, 0)
+        header = FrameHeader('TXXX', 0x00FA, 0, False)
         encoding = b'\x00'
         text = "Lörem Ipsüm"
 
@@ -24,7 +24,7 @@ class TextFrameTests(unittest.TestCase):
     def test_decodes_latin1_frames_without_null_terminator(self):
         """Decodes Latin1 encoded text"""
         # Arrange
-        header = FrameHeader(b'TXXX', 0x00FA, 0)
+        header = FrameHeader('TXXX', 0x00FA, 0, False)
         encoding = b'\x00'
         text = "Lörem Ipsüm"
 
@@ -40,7 +40,7 @@ class TextFrameTests(unittest.TestCase):
     def test_decodes_utf_16_frames(self):
         """Decodes UTF-16 encoded text"""
         # Arrange
-        header = FrameHeader(b'TXXX', 0x00FA, 0)
+        header = FrameHeader('TXXX', 0x00FA, 0, False)
         encoding = b'\x01'
         text = "Lörem Ipsüm"
 
@@ -56,7 +56,7 @@ class TextFrameTests(unittest.TestCase):
     def test_decodes_utf_16_be_frames(self):
         """Decodes UTF-16BE encoded text"""
         # Arrange
-        header = FrameHeader(b'TXXX', 0x00FA, 0)
+        header = FrameHeader('TXXX', 0x00FA, 0, False)
         encoding = b'\x02'
         text = "Lörem Ipsüm"
 
@@ -72,7 +72,7 @@ class TextFrameTests(unittest.TestCase):
     def test_decodes_utf_8_frames(self):
         """Decodes UTF-8 encoded text"""
         # Arrange
-        header = FrameHeader(b'TXXX', 0x00FA, 0)
+        header = FrameHeader('TXXX', 0x00FA, 0, False)
         encoding = b'\x03'
         text = "Lörem Ipsüm"
 

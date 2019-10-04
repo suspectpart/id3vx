@@ -27,7 +27,7 @@ class TagTests(unittest.TestCase):
         flags = TagHeader.Flags.Experimental
         codec = Codec.default()
 
-        header = FrameHeader(b'TALB', 10, 0)
+        header = FrameHeader('TALB', 10, 0, False)
 
         frame = TextFrame(header, b'\x00sometext\x00', codec, "sometext")
         tag_header = TagHeader(b'ID3', 3, 2, flags, 20 + padding)

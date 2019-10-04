@@ -7,7 +7,7 @@ class PrivateFrameTests(unittest.TestCase):
     def test_exposes_all_fields(self):
         """Exposes all fields properly"""
         # Arrange
-        header = FrameHeader(b'PRIV', 0x00FA, 0)
+        header = FrameHeader('PRIV', 0x00FA, 0, False)
         owner = "horst"
         random_binary = b'\xfa\x0a\x0c\x00\x00\xff\xca'
         fields = bytes(owner, "latin1") + b'\x00' + random_binary

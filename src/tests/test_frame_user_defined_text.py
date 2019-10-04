@@ -7,7 +7,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
     def test_decodes_frames_with_null_terminator(self):
         """Decodes Latin1 encoded text"""
         # Arrange
-        header = FrameHeader(b'TXXX', 0x00FA, 0)
+        header = FrameHeader('TXXX', 0x00FA, 0, False)
         encoding = b'\x01'
         terminator = b'\x00\x00'
         description = "Specific Text".encode("utf-16")
@@ -27,7 +27,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
     def test_decodes_latin1_frames_without_null_terminator(self):
         """Decodes Latin1 encoded text"""
         # Arrange
-        header = FrameHeader(b'TXXX', 0x00FA, 0)
+        header = FrameHeader(b'TXXX', 0x00FA, 0, False)
         encoding = b'\x03'
         terminator = b'\x00'
         description = "Specific Text".encode("utf-8")
@@ -47,7 +47,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
     def test_decodes_frames_with_empty_description(self):
         """Decodes Latin1 encoded text"""
         # Arrange
-        header = FrameHeader(b'TXXX', 0x00FA, 0)
+        header = FrameHeader('TXXX', 0x00FA, 0, False)
         encoding = b'\x03'
         terminator = b'\x00'
         description = b''
