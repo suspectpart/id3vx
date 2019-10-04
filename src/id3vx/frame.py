@@ -135,8 +135,8 @@ class Frame:
         with BytesIO(frame_bytes) as stream:
             fields = cls.FIELDS.read(stream)
 
-            # noinspection PyArgumentList
-            return cls(header, frame_bytes, **fields)
+        # noinspection PyArgumentList
+        return cls(header, frame_bytes, **fields)
 
     def id(self):
         """The 4-letter frame id of this frame.
