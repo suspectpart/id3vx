@@ -1,4 +1,5 @@
 import unittest
+from io import BytesIO
 
 from id3vx.frame import FrameHeader, TXXX
 
@@ -16,7 +17,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         fields = encoding + description + terminator + text + terminator
 
         # Act
-        frame = TXXX(header, fields)
+        frame = TXXX.read_fields(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text.decode("utf-16"))
@@ -36,7 +37,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         fields = encoding + description + terminator + text
 
         # Act
-        frame = TXXX(header, fields)
+        frame = TXXX.read_fields(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text.decode("utf-8"))
@@ -56,7 +57,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         fields = encoding + description + terminator + text
 
         # Act
-        frame = TXXX(header, fields)
+        frame = TXXX.read_fields(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text.decode("utf-8"))

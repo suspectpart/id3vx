@@ -114,9 +114,7 @@ class Frame:
     Refer to `ID3v2.3 frame specification
     <http://id3.org/id3v2.3.0#ID3v2_frame_overview>`_
     """
-    FIELDS = Fields(
-        BinaryField("data"),
-    )
+    FIELDS = Fields()
 
     @classmethod
     def from_file(cls, mp3, unsynchronize_size=False):
@@ -126,10 +124,17 @@ class Frame:
         if not header:
             return None
 
-        fields = mp3.read(header.frame_size())
-        frame = FRAMES.get(header.id(), Frame)(header, fields)
+        frame_bytes = mp3.read(header.frame_size())
+        frame = FRAMES.get(header.id(), Frame)
 
-        return frame
+        return frame.read_fields(header, frame_bytes)
+
+    @classmethod
+    def read_fields(cls, header, raw_bytes):
+        with BytesIO(raw_bytes) as stream:
+            fields = cls.FIELDS.read(stream)
+            # noinspection PyArgumentList
+            return cls(header, raw_bytes, *fields.values())
 
     def __init__(self, header, fields):
         self._header = header
@@ -190,10 +195,10 @@ class APIC(Frame):
     """
     FIELDS = Fields(
         CodecField(),
-        TextField("mime_type"),
-        IntegerField("picture_type", 1),
-        EncodedTextField("description"),
-        BinaryField("data"),
+        TextField("_mime_type"),
+        IntegerField("_picture_type", 1),
+        EncodedTextField("_description"),
+        BinaryField("_data"),
     )
 
     class PictureType(enum.Enum):
@@ -219,20 +224,15 @@ class APIC(Frame):
         BAND_LOGO_TYPE = 0x13  # "Band/artist logotype"
         PUBLISHER_LOGO_TYPE = 0x14  # "Publisher/Studio logotype"
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, codec, mime_type, picture_type, description,
+                 data):
         super().__init__(header, fields)
 
-        # There are some tags that contain only three null bytes \x00\x00\x00
-        # right before the data starts. Parsing them causes all the fields
-        # to be slightly off, e.g. the JPEG header slips into the description,
-        # reading ÿØÿà. kid3 and eyeD3 Have the same issue, so that seems to
-        # be a violation of the spec and it's not just me being stupid.
-        with BytesIO(fields) as stream:
-            self._codec = CodecField().read(stream)
-            self._mime_type = TextField("mime_type").read(stream)
-            self._picture_type = IntegerField("picture_type", 1).read(stream)
-            self._description = EncodedTextField("description").read(stream, self._codec)
-            self._data = BinaryField("data").read(stream)
+        self._codec = codec
+        self._mime_type = mime_type
+        self._picture_type = picture_type
+        self._description = description
+        self._data = data
 
     def picture_type(self):
         return self.PictureType(int(self._picture_type))
@@ -280,22 +280,21 @@ class PRIV(Frame):
     See `specification <http://id3.org/id3v2.3.0#Private_frame>`_
     """
     FIELDS = Fields(
-        TextField("owner"),
-        BinaryField("data")
+        TextField("_owner"),
+        BinaryField("_data")
     )
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, owner, data):
         super().__init__(header, fields)
 
-        with BytesIO(fields) as stream:
-            self._owner = TextField("owner").read(stream)
-            self._data = BinaryField("data").read(stream)
+        self._owner = owner
+        self._data = data
 
     def owner(self):
-        return str(self._owner)
+        return self._owner
 
     def data(self):
-        return bytes(self._data)
+        return self._data
 
     def __str__(self):
         return f'[owner {self.owner()}][data={self.data()}]'
@@ -315,27 +314,25 @@ class GEOB(Frame):
     """
     FIELDS = Fields(
         CodecField(),
-        TextField("mime_type"),
-        EncodedTextField("filename"),
-        EncodedTextField("description"),
-        BinaryField("data")
+        TextField("_mime_type"),
+        EncodedTextField("_filename"),
+        EncodedTextField("_description"),
+        BinaryField("_object")
     )
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, mime_type, filename, description, obj):
         super().__init__(header, fields)
 
-        with BytesIO(fields) as stream:
-            self._codec = CodecField().read(stream)
-            self._mime_type = TextField("mime_type").read(stream)
-            self._file_name = EncodedTextField("filename").read(stream, self._codec)
-            self._description = EncodedTextField("description").read(stream, self._codec)
-            self._object = BinaryField("data").read(stream)
+        self._mime_type = mime_type
+        self._filename = filename
+        self._description = description
+        self._obj = obj
 
     def __str__(self):
         return f'[mime-type={self._mime_type}]' \
-               f'[filename={self._file_name}]' \
+               f'[filename={self._filename}]' \
                f'[description={self._description}]' \
-               f'[object={bytes(self._object)}]'
+               f'[object={bytes(self._obj)}]'
 
 
 class UFID(PRIV):
@@ -361,15 +358,14 @@ class TextFrame(Frame):
     """
     FIELDS = Fields(
         CodecField(),
-        EncodedTextField("text"),
+        EncodedTextField("_text"),
     )
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, codec, text):
         super().__init__(header, fields)
 
-        with BytesIO(fields) as stream:
-            self._codec = CodecField().read(stream)
-            self._text = EncodedTextField("text").read(stream, codec=self._codec)
+        self._codec = codec
+        self._text = text
 
     def text(self):
         return str(self._text)
@@ -407,17 +403,16 @@ class TXXX(Frame):
     """
     FIELDS = Fields(
         CodecField(),
-        EncodedTextField("description"),
-        EncodedTextField("text"),
+        EncodedTextField("_description"),
+        EncodedTextField("_text"),
     )
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, codec, description, text):
         super().__init__(header, fields)
 
-        with BytesIO(fields) as stream:
-            self._codec = CodecField().read(stream)
-            self._description = EncodedTextField("description").read(stream, self._codec)
-            self._text = EncodedTextField("text").read(stream, self._codec)
+        self._codec = codec
+        self._description = description
+        self._text = text
 
     def text(self):
         return str(self._text)
@@ -439,11 +434,16 @@ class URLLinkFrame(Frame):
     See `specification <http://id3.org/id3v2.3.0#URL_link_frames>`_
     """
     FIELDS = Fields(
-        TextField("url"),
+        TextField("_url"),
     )
 
+    def __init__(self, header, fields, url):
+        super().__init__(header, fields)
+
+        self._url = url
+
     def url(self):
-        return Codec.default().decode(self.fields())
+        return self._url
 
     def __str__(self):
         return self.url()
@@ -494,17 +494,16 @@ class WXXX(Frame):
     """
     FIELDS = Fields(
         CodecField(),
-        EncodedTextField("description"),
-        TextField("url"),
+        EncodedTextField("_description"),
+        TextField("_url"),
     )
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, codec, url, description):
         super().__init__(header, fields)
 
-        with BytesIO(fields) as stream:
-            self._codec = CodecField().read(stream)
-            self._description = EncodedTextField("description").read(stream, self._codec)
-            self._url = TextField("url").read(stream)
+        self._codec = codec
+        self._url = url
+        self._description = description
 
     def description(self):
         return str(self._description)
@@ -517,12 +516,6 @@ class WXXX(Frame):
 
 
 class COMM(Frame):
-    FIELDS = Fields(
-        CodecField(),
-        FixedLengthTextField("language", 3),
-        EncodedTextField("description"),
-        EncodedTextField("text"),
-    )
     """Comment Frame (COMM)
 
     <Header for 'Comment', ID: "COMM">
@@ -533,15 +526,20 @@ class COMM(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Comments>`_
     """
+    FIELDS = Fields(
+        CodecField(),
+        FixedLengthTextField("_language", 3),
+        EncodedTextField("_description"),
+        EncodedTextField("_comment"),
+    )
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, codec, language, description, comment):
         super().__init__(header, fields)
 
-        with BytesIO(fields) as stream:
-            self._codec = CodecField().read(stream)
-            self._language = FixedLengthTextField("language", 3).read(stream)
-            self._description = EncodedTextField("description").read(stream, self._codec)
-            self._comment = EncodedTextField("text").read(stream, self._codec)
+        self._codec = codec
+        self._comment = comment
+        self._description = description
+        self._language = language
 
     def language(self):
         return str(self._language)
@@ -567,16 +565,15 @@ class PCNT(Frame):
     See `specification <http://id3.org/id3v2.3.0#Play_counter>`_
     """
     FIELDS = Fields(
-        IntegerField("counter")
+        IntegerField("_counter")
     )
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, counter):
         super().__init__(header, fields)
 
-        # TODO: who listens to a song more than 2 ** 32 times?
-        with BytesIO(fields) as stream:
-            self._counter = IntegerField("counter").read(stream)
+        self._counter = counter
 
+    # FIXME: doesn't (but who listens to a song more than 2 ** 32 - 1 times?)
     def counter(self):
         return int(self._counter)
 
@@ -595,19 +592,18 @@ class USLT(Frame):
     """
     FIELDS = Fields(
         CodecField(),
-        FixedLengthTextField("language", 3),
-        EncodedTextField("description"),
-        EncodedTextField("lyrics"),
+        FixedLengthTextField("_language", 3),
+        EncodedTextField("_description"),
+        EncodedTextField("_lyrics"),
     )
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, codec, language, description, lyrics):
         super().__init__(header, fields)
 
-        with BytesIO(fields) as stream:
-            self._codec = CodecField().read(stream)
-            self._language = FixedLengthTextField("language", 3).read(stream)
-            self._description = EncodedTextField("description").read(stream, self._codec)
-            self._lyrics = EncodedTextField("lyrics").read(stream, self._codec)
+        self._codec = codec
+        self._language = language
+        self._description = description
+        self._lyrics = lyrics
 
     def __str__(self):
         return f'[language={self._language}]' \
@@ -629,27 +625,25 @@ class CHAP(Frame):
     See `specification <http://id3.org/id3v2-chapters-1.0>`_
     """
     FIELDS = Fields(
-        TextField("element_id"),
-        IntegerField("start_time"),
-        IntegerField("end_time"),
-        IntegerField("start_offset"),
-        IntegerField("end_offset"),
-        BinaryField("sub_frames"),
+        TextField("_element_id"),
+        IntegerField("_start_time"),
+        IntegerField("_end_time"),
+        IntegerField("_start_offset"),
+        IntegerField("_end_offset"),
+        BinaryField("_sub_frames"),
     )
 
     Timings = namedtuple("Timings", "start, end, start_offset, end_offset")
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, element_id, start_time, end_time, start_offset, end_offset, sub_frames):
         super().__init__(header, fields)
 
-        with BytesIO(fields) as stream:
-            self._element_id = TextField("element_id").read(stream)
-            self._start_time = IntegerField("start_time").read(stream)
-            self._end_time = IntegerField("end_time").read(stream)
-            self._start_offset = IntegerField("start_offset").read(stream)
-            self._end_offset = IntegerField("end_offset").read(stream)
-            # TODO: needs to be another field
-            self._sub_frames = stream.read()
+        self._element_id = element_id
+        self._start_time = start_time
+        self._end_time = end_time
+        self._start_offset = start_offset
+        self._end_offset = end_offset
+        self._sub_frames = sub_frames
 
     def sub_frames(self):
         """CHAP frames include 0-2 sub frames (of type TIT2 and TIT3)"""
@@ -659,19 +653,19 @@ class CHAP(Frame):
         return (f for f in frames if f)
 
     def element_id(self):
-        return str(self._element_id)
+        return self._element_id
 
     def start(self):
-        return datetime.timedelta(milliseconds=int(self._start_time))
+        return datetime.timedelta(milliseconds=self._start_time)
 
     def end(self):
-        return datetime.timedelta(milliseconds=int(self._end_time))
+        return datetime.timedelta(milliseconds=self._end_time)
 
     def offset_start(self):
-        return int(self._start_offset)
+        return self._start_offset
 
     def offset_end(self):
-        return int(self._end_offset)
+        return self._end_offset
 
     def __str__(self):
         return f'[{self._element_id}] ' \
@@ -703,17 +697,15 @@ class USER(Frame):
     """
     FIELDS = Fields(
         CodecField(),
-        FixedLengthTextField("language", 3),
-        EncodedTextField("text"),
+        FixedLengthTextField("_language", 3),
+        EncodedTextField("_text"),
     )
 
-    def __init__(self, header, fields):
+    def __init__(self, header, fields, language, text):
         super().__init__(header, fields)
 
-        with BytesIO(fields) as stream:
-            self._codec = CodecField().read(stream)
-            self._language = FixedLengthTextField("language", 3).read(stream)
-            self._text = EncodedTextField("text").read(stream, self._codec)
+        self._text = text
+        self._language = language
 
     def __str__(self):
         return f'[language={self._language}][text={self._text}]'

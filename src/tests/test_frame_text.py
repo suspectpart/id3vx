@@ -15,7 +15,7 @@ class TextFrameTests(unittest.TestCase):
         fields = encoding + text.encode("latin1")
 
         # Act
-        frame = TextFrame(header, fields)
+        frame = TextFrame.read_fields(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text)
@@ -31,7 +31,7 @@ class TextFrameTests(unittest.TestCase):
         fields = encoding + text.encode("latin1")
 
         # Act
-        frame = TextFrame(header, fields)
+        frame = TextFrame.read_fields(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text)
@@ -47,7 +47,7 @@ class TextFrameTests(unittest.TestCase):
         fields = encoding + text.encode("utf_16")
 
         # Act
-        frame = TextFrame(header, fields)
+        frame = TextFrame.read_fields(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text)
@@ -63,7 +63,7 @@ class TextFrameTests(unittest.TestCase):
         fields = encoding + text.encode("utf_16_be")
 
         # Act
-        frame = TextFrame(header, fields)
+        frame = TextFrame.read_fields(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text)
@@ -79,7 +79,7 @@ class TextFrameTests(unittest.TestCase):
         fields = encoding + text.encode("utf-8")
 
         # Act
-        frame = TextFrame(header, fields)
+        frame = TextFrame.read_fields(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text)

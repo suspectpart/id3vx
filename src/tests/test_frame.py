@@ -11,9 +11,9 @@ class FramesTests(unittest.TestCase):
     def test_reads_frames_from_file(self):
         # Arrange
         header_a = FrameHeader(b"TALB", 9, FrameHeader.Flags.Compression)
-        frame_a = PRIV(header_a, b'\x00thealbum')
+        frame_a = PRIV.read_fields(header_a, b'\x00thealbum')
         header_b = FrameHeader(b"TIT2", 10, FrameHeader.Flags.Encryption)
-        frame_b = PRIV(header_b, b'\x00theartist')
+        frame_b = PRIV.read_fields(header_b, b'\x00theartist')
         tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 39)
 
         byte_string = bytes(frame_a) + bytes(frame_b)
@@ -32,7 +32,7 @@ class FramesTests(unittest.TestCase):
         """Stops on first padding frame"""
         # Arrange
         header = FrameHeader(b"TALB", 9, FrameHeader.Flags.Compression)
-        frame = PRIV(header, b'\x00thealbum')
+        frame = PRIV.read_fields(header, b'\x00thealbum')
         padding = b'\x00' * 81
         tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 100)
 
@@ -233,7 +233,7 @@ class FrameTests(unittest.TestCase):
         fields = b'\x00Album'
         size = len(fields)
         header = FrameHeader(b'TALB', size, 0)
-        frame = TextFrame(header, fields)
+        frame = TextFrame.read_fields(header, fields)
 
         stream = BytesIO(bytes(frame))
 
@@ -263,7 +263,7 @@ class APICTests(unittest.TestCase):
         expected_mime_type = "image/paper"
 
         # System under test
-        frame = APIC(header, fields)
+        frame = APIC.read_fields(header, fields)
 
         # Act - Assert
         self.assertEqual(type(frame), APIC)
@@ -301,7 +301,7 @@ class CHAPTests(unittest.TestCase):
         expected_bytes = bytes(header) + fields
 
         # System under test
-        frame = CHAP(header, fields)
+        frame = CHAP.read_fields(header, fields)
 
         # Act - Assert
         self.assertEqual(type(frame), CHAP)
@@ -321,7 +321,7 @@ class CHAPTests(unittest.TestCase):
     def test_subframes(self):
         # Arrange
         sub_frame_header = FrameHeader(b'TIT2', 1000, 0)
-        sub_frame = TextFrame(sub_frame_header, b'\x00sometext')
+        sub_frame = TextFrame.read_fields(sub_frame_header, b'\x00sometext')
 
         header = FrameHeader(b'CHAP', 1000, 0)
 
@@ -337,7 +337,7 @@ class CHAPTests(unittest.TestCase):
         fields += bytes(sub_frame)
 
         # System under test
-        frame = CHAP(header, fields)
+        frame = CHAP.read_fields(header, fields)
 
         # Act
         sub_frames = list(frame.sub_frames())

@@ -1,5 +1,6 @@
 import unittest
 
+from id3vx.codec import Codec
 from id3vx.frame import Frames, TextFrame, FrameHeader
 from id3vx.tag import Tag, TagHeader
 
@@ -24,7 +25,11 @@ class TagTests(unittest.TestCase):
         # Arrange
         padding = 80
         flags = TagHeader.Flags.Experimental
-        frame = TextFrame(FrameHeader(b'TALB', 10, 0), b'\x00some text')
+        codec = Codec.default()
+
+        header = FrameHeader(b'TALB', 10, 0)
+
+        frame = TextFrame(header, b'\x00sometext\x00', codec, "sometext")
         tag_header = TagHeader(b'ID3', 3, 2, flags, 20 + padding)
 
         expected_bytes = bytes(tag_header) + bytes(frame) + padding * b'\x00'
