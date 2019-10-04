@@ -1,6 +1,6 @@
 import unittest
 
-from id3vx.frame import FrameHeader, PrivateFrame
+from id3vx.frame import FrameHeader, PRIV
 
 
 class PrivateFrameTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class PrivateFrameTests(unittest.TestCase):
         fields = bytes(owner, "latin1") + b'\x00' + random_binary
 
         # Act
-        frame = PrivateFrame(header, fields)
+        frame = PRIV(header, fields)
 
         # Assert
         self.assertEqual(frame.header(), header)
@@ -25,7 +25,7 @@ class PrivateFrameTests(unittest.TestCase):
     def test_represents_private_frames(self):
         """Represents only PRIV ids"""
         # Arrange - Act - Assert
-        self.assertTrue(PrivateFrame.represents(b'PRIV'))
-        self.assertFalse(PrivateFrame.represents(b'COMM'))
-        self.assertFalse(PrivateFrame.represents(b'TXXX'))
-        self.assertFalse(PrivateFrame.represents(b'WXXX'))
+        self.assertTrue(PRIV.represents(b'PRIV'))
+        self.assertFalse(PRIV.represents(b'COMM'))
+        self.assertFalse(PRIV.represents(b'TXXX'))
+        self.assertFalse(PRIV.represents(b'WXXX'))

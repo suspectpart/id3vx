@@ -1,6 +1,6 @@
 import unittest
 
-from id3vx.frame import FrameHeader, UserDefinedTextFrame
+from id3vx.frame import FrameHeader, TXXX
 
 
 class UserDefinedTextFrameTests(unittest.TestCase):
@@ -16,7 +16,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         fields = encoding + description + terminator + text + terminator
 
         # Act
-        frame = UserDefinedTextFrame(header, fields)
+        frame = TXXX(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text.decode("utf-16"))
@@ -36,7 +36,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         fields = encoding + description + terminator + text
 
         # Act
-        frame = UserDefinedTextFrame(header, fields)
+        frame = TXXX(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text.decode("utf-8"))
@@ -56,7 +56,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         fields = encoding + description + terminator + text
 
         # Act
-        frame = UserDefinedTextFrame(header, fields)
+        frame = TXXX(header, fields)
 
         # Assert
         self.assertEqual(frame.text(), text.decode("utf-8"))
@@ -66,7 +66,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
     def test_represents_txxx_text_frame(self):
         """Represents Frame ID 'TXXX'"""
         # System Under Test
-        frame = UserDefinedTextFrame
+        frame = TXXX
 
         # Act - Assert
         self.assertTrue(frame.represents(b'TXXX'))

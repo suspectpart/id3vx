@@ -1,6 +1,8 @@
 import datetime
 import enum
+import inspect
 import struct
+import sys
 from collections import namedtuple
 from enum import IntFlag
 from io import BytesIO
@@ -122,9 +124,11 @@ class Frame:
             return None
 
         fields = mp3.read(header.frame_size())
-        cls_ = next(f for f in FRAMES_PIPE if f.represents(header.id()))
 
-        return cls_(header, fields)
+        frame_id = header.id().decode("latin1")
+        frame = FRAMES.get(frame_id, Frame)
+
+        return frame(header, fields)
 
     @staticmethod
     def represents(identifier):
@@ -172,7 +176,7 @@ class Frame:
         return bytes(self.header()) + bytes(self.fields())
 
 
-class AttachedPictureFrame(Frame):
+class APIC(Frame):
     """Attached picture frame (APIC)
 
     <Header for 'Attached picture', ID: "APIC">
@@ -246,7 +250,7 @@ class AttachedPictureFrame(Frame):
                f"[data={self.data()}]"
 
 
-class MusicCDIdentifierFrame(Frame):
+class MCDI(Frame):
     """A Music CD Identifier Frame (MCDI)
 
     <Header for 'Music CD identifier', ID: "MCDI">
@@ -263,7 +267,7 @@ class MusicCDIdentifierFrame(Frame):
         return self.fields()
 
 
-class MusicMatchMysteryFrame(Frame):
+class NCON(Frame):
     """A mysterious binary frame added by MusicMatch (NCON)"""
 
     @staticmethod
@@ -271,7 +275,7 @@ class MusicMatchMysteryFrame(Frame):
         return identifier == b'NCON'
 
 
-class PrivateFrame(Frame):
+class PRIV(Frame):
     """Private frame (PRIV)
 
     <Header for 'Private frame', ID: "PRIV">
@@ -280,6 +284,7 @@ class PrivateFrame(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Private_frame>`_
     """
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -301,7 +306,7 @@ class PrivateFrame(Frame):
         return f'[owner {self.owner()}] {self.data()}'
 
 
-class UFIDFrame(PrivateFrame):
+class UFID(PRIV):
     """Unique file identifier frame (UFID)
 
     <Header for 'Unique file identifier', ID: "UFID">
@@ -356,7 +361,19 @@ class PicardFrame(TextFrame):
         return identifier in [b'XSOA', b'XSOP', b'XSOT']
 
 
-class UserDefinedTextFrame(Frame):
+class XSOP(PicardFrame):
+    """Performing Artist sort order"""
+
+
+class XSOA(PicardFrame):
+    """Album sort order"""
+
+
+class XSOT(PicardFrame):
+    """Track sort oder"""
+
+
+class TXXX(Frame):
     """User defined text information frame (TXXX)
 
     <Header for 'User defined text information frame', ID: "TXXX">
@@ -367,6 +384,7 @@ class UserDefinedTextFrame(Frame):
     See `specification
     <http://id3.org/id3v2.3.0#User_defined_text_information_frame>`_
     """
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -398,6 +416,7 @@ class URLLinkFrame(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#URL_link_frames>`_
     """
+
     def url(self):
         return Codec.default().decode(self.fields())
 
@@ -409,7 +428,39 @@ class URLLinkFrame(Frame):
         return identifier == b'WOAR'
 
 
-class UserDefinedURLLinkFrame(Frame):
+class WCOM(URLLinkFrame):
+    """Commercial information"""
+
+
+class WCOP(URLLinkFrame):
+    """Copyright/Legal information"""
+
+
+class WOAF(URLLinkFrame):
+    """Official audio file webpage"""
+
+
+class WOAR(URLLinkFrame):
+    """Official artist/performer webpage"""
+
+
+class WOAS(URLLinkFrame):
+    """Official audio source webpage"""
+
+
+class WORS(URLLinkFrame):
+    """Official internet radio station homepage"""
+
+
+class WPAY(URLLinkFrame):
+    """Payment"""
+
+
+class WPUB(URLLinkFrame):
+    """Publishers official webpage"""
+
+
+class WXXX(Frame):
     """A User Defined URL Frame (WXXX)
 
     <Header for 'User defined URL link frame', ID: "WXXX">
@@ -443,7 +494,7 @@ class UserDefinedURLLinkFrame(Frame):
         return f'[description {self.description()}] {self.url()}'
 
 
-class CommentFrame(Frame):
+class COMM(Frame):
     """Comment Frame (COMM)
 
     <Header for 'Comment', ID: "COMM">
@@ -483,7 +534,7 @@ class CommentFrame(Frame):
                f'{self.comment()}'
 
 
-class ChapterFrame(Frame):
+class CHAP(Frame):
     """A Chapter frame (CHAP)
 
     <ID3v2.3 or ID3v2.4 frame header, ID: "CHAP">           (10 bytes)
@@ -638,18 +689,186 @@ DECLARED_FRAMES = {
     "XSOA": "Album sort order",
 }
 
-FRAMES_PIPE = [
-    UserDefinedTextFrame,
-    UserDefinedURLLinkFrame,
-    URLLinkFrame,
-    PrivateFrame,
-    ChapterFrame,
-    CommentFrame,
-    UFIDFrame,
-    AttachedPictureFrame,
-    PicardFrame,
-    TextFrame,
-    MusicMatchMysteryFrame,
-    MusicCDIdentifierFrame,
-    Frame,
-]
+
+class TALB(TextFrame):
+    """Album/Movie/Show title"""
+
+
+class TBPM(TextFrame):
+    """BPM' frame contains the number of beats per minute in the mainpart
+    of the audio. The BPM is an integer and represented as a numerical string.
+    """
+
+
+class TCOM(TextFrame):
+    """The 'Composer(s)' frame is intended for the name of the composer(s).
+    They are seperated with the "/" character.
+    """
+
+
+class TCON(TextFrame):
+    """The 'Content type', which previously was stored as a one byte numeric
+    value only, is now a numeric string. You may use one or several of the
+    types as ID3v1.1 did or, since the category list would be impossible to
+    maintain with accurate and up to date categories, define your own.
+    """
+
+
+class TCOP(TextFrame):
+    """The 'Copyright message' frame, which must begin with a year and a space
+    character (making five characters), is intended for the copyright holder
+    of the original sound, not the audio file itself. The absence of this
+    frame means only that the copyright information is unavailable or has been
+    removed, and must not be interpreted to mean that the sound is public
+    domain. Every time this field is displayed the field must be
+    preceded with "Copyright © ".
+    """
+
+
+class TDAT(TextFrame):
+    """The 'Date' frame is a numeric string in the DDMM format containing the
+    date for the recording. This field is always four characters long.
+    """
+
+
+class TDLY(TextFrame):
+    """The 'Playlist delay' defines the numbers of milliseconds of silence
+    between every song in a playlist. The player should use the "ETC" frame, if
+    present, to skip initial silence and silence at the end of the audio to
+    match the 'Playlist delay' time. The time is represented as a numeric
+    string.
+    """
+
+
+class TENC(TextFrame):
+    """The 'Encoded by' frame contains the name of the person or organisation
+    that encoded the audio file. This field may contain a copyright message,
+    if the audio file also is copyrighted by the encoder.
+    """
+
+
+class TEXT(TextFrame):
+    """The 'Lyricist(s)/Text writer(s)' frame is intended for the writer(s) of
+    the text or lyrics in the recording.
+    They are seperated with the "/" character.
+    """
+
+
+class TFLT(TextFrame):
+    """The 'File type' frame indicates which type of audio this tag defines."""
+
+
+class TIME(TextFrame):
+    """Time"""
+
+
+class TIT1(TextFrame):
+    """Content group description"""
+
+
+class TIT2(TextFrame):
+    """Title/Songname/Content description"""
+
+
+class TIT3(TextFrame):
+    """Subtitle/Description refinement"""
+
+
+class TKEY(TextFrame):
+    """Initial key"""
+
+
+class TLAN(TextFrame):
+    """Language(s)"""
+
+
+class TLEN(TextFrame):
+    """Length"""
+
+
+class TMED(TextFrame):
+    """Media type"""
+
+
+class TOAL(TextFrame):
+    """Original album/movie/show title"""
+
+
+class TOFN(TextFrame):
+    """Original filename"""
+
+
+class TOLY(TextFrame):
+    """Original lyricist(s)/text writer(s)"""
+
+
+class TOPE(TextFrame):
+    """Original artist(s)/performer(s)"""
+
+
+class TORY(TextFrame):
+    """Original release year"""
+
+
+class TOWN(TextFrame):
+    """File owner/licensee"""
+
+
+class TPE1(TextFrame):
+    """Lead artist(s)/Lead performer(s)/Soloist(s)/Performing group"""
+
+
+class TPE2(TextFrame):
+    """Band/Orchestra/Accompaniment"""
+
+
+class TPE3(TextFrame):
+    """Conductor"""
+
+
+class TPE4(TextFrame):
+    """'Interpreted, remixed, or otherwise modified by"""
+
+
+class TPOS(TextFrame):
+    """'Part of a set'"""
+
+
+class TPUB(TextFrame):
+    """Publisher"""
+
+
+class TRCK(TextFrame):
+    """Track number/Position in set"""
+
+
+class TRDA(TextFrame):
+    """Recording dates"""
+
+
+class TRSN(TextFrame):
+    """Internet radio station name"""
+
+
+class TRSO(TextFrame):
+    """Internet radio station owner"""
+
+
+class TSIZ(TextFrame):
+    """Size"""
+
+
+class TSRC(TextFrame):
+    """ISRC (International Standard Recording Code) (12 characters)"""
+
+
+class TSSE(TextFrame):
+    """Software/Hardware and settings used for encoding"""
+
+
+class TYER(TextFrame):
+    """Year (4 characters)"""
+
+
+classes = inspect.getmembers(sys.modules[__name__], inspect.isclass)
+FRAMES = {name: clazz for (name, clazz) in classes}

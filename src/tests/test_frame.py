@@ -2,9 +2,8 @@ from datetime import timedelta
 import unittest
 from io import BytesIO
 
-from id3vx.frame import FrameHeader, Frame, TextFrame, PrivateFrame, \
-    Frames, AttachedPictureFrame as ApicFrame, \
-    ChapterFrame, MusicCDIdentifierFrame, MusicMatchMysteryFrame, CommentFrame
+from id3vx.frame import FrameHeader, Frame, TextFrame, PRIV, Frames, APIC, \
+    CHAP, MCDI, NCON, COMM, TALB
 from id3vx.tag import TagHeader
 
 
@@ -12,9 +11,9 @@ class FramesTests(unittest.TestCase):
     def test_reads_frames_from_file(self):
         # Arrange
         header_a = FrameHeader(b"TALB", 9, FrameHeader.Flags.Compression)
-        frame_a = PrivateFrame(header_a, b'\x00thealbum')
+        frame_a = PRIV(header_a, b'\x00thealbum')
         header_b = FrameHeader(b"TIT2", 10, FrameHeader.Flags.Encryption)
-        frame_b = PrivateFrame(header_b, b'\x00theartist')
+        frame_b = PRIV(header_b, b'\x00theartist')
         tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 39)
 
         byte_string = bytes(frame_a) + bytes(frame_b)
@@ -33,7 +32,7 @@ class FramesTests(unittest.TestCase):
         """Stops on first padding frame"""
         # Arrange
         header = FrameHeader(b"TALB", 9, FrameHeader.Flags.Compression)
-        frame = PrivateFrame(header, b'\x00thealbum')
+        frame = PRIV(header, b'\x00thealbum')
         padding = b'\x00' * 81
         tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 100)
 
@@ -253,12 +252,11 @@ class FrameTests(unittest.TestCase):
         frame = Frame.from_file(stream)
 
         # Act - Assert
-        self.assertEqual(type(frame), TextFrame)
-        self.assertEqual(frame.id(), "TALB")
+        self.assertEqual(type(frame), TALB)
         self.assertEqual(frame.text(), "Album")
 
 
-class AttachedPictureFrameTests(unittest.TestCase):
+class APICTests(unittest.TestCase):
     def test_initialize_from_fields(self):
         # Arrange
         header = FrameHeader(b'APIC', 1000, 0)
@@ -272,14 +270,14 @@ class AttachedPictureFrameTests(unittest.TestCase):
 
         fields = encoding + mime_type + picture_type + desc_bytes + data
 
-        expected_pic_type = ApicFrame.PictureType.BRIGHT_COLORED_FISH
+        expected_pic_type = APIC.PictureType.BRIGHT_COLORED_FISH
         expected_mime_type = "image/paper"
 
         # System under test
-        frame = ApicFrame(header, fields)
+        frame = APIC(header, fields)
 
         # Act - Assert
-        self.assertEqual(type(frame), ApicFrame)
+        self.assertEqual(type(frame), APIC)
         self.assertEqual(frame.description(), description)
         self.assertEqual(frame.picture_type(), expected_pic_type)
         self.assertEqual(frame.mime_type(), "image/paper")
@@ -291,7 +289,7 @@ class AttachedPictureFrameTests(unittest.TestCase):
         self.assertIn(expected_mime_type, str(frame))
 
 
-class ChapterFrameTests(unittest.TestCase):
+class CHAPTests(unittest.TestCase):
     def test_initialize_from_fields(self):
         # Arrange
         header = FrameHeader(b'CHAP', 1000, 0)
@@ -314,10 +312,10 @@ class ChapterFrameTests(unittest.TestCase):
         expected_bytes = bytes(header) + fields
 
         # System under test
-        frame = ChapterFrame(header, fields)
+        frame = CHAP(header, fields)
 
         # Act - Assert
-        self.assertEqual(type(frame), ChapterFrame)
+        self.assertEqual(type(frame), CHAP)
         self.assertEqual(frame.element_id(), element_id)
         self.assertEqual(frame.start(), delta_start)
         self.assertEqual(frame.end(), delta_end)
@@ -350,7 +348,7 @@ class ChapterFrameTests(unittest.TestCase):
         fields += bytes(sub_frame)
 
         # System under test
-        frame = ChapterFrame(header, fields)
+        frame = CHAP(header, fields)
 
         # Act
         sub_frames = list(frame.sub_frames())
@@ -361,37 +359,37 @@ class ChapterFrameTests(unittest.TestCase):
         self.assertEqual("sometext", sub_frames[0].text())
 
 
-class MusicCDIdentifierFrameTests(unittest.TestCase):
+class MCDITests(unittest.TestCase):
     def test_exposes_toc(self):
         # Arrange
         header = FrameHeader(b'MCDI', 1000, 0)
         fields = b'\xf0\xfa\xccsometocdata\xff'
 
         # System under test
-        frame = MusicCDIdentifierFrame(header, fields)
+        frame = MCDI(header, fields)
 
         # Act - Assert
-        self.assertEqual(type(frame), MusicCDIdentifierFrame)
+        self.assertEqual(type(frame), MCDI)
         self.assertEqual(fields, frame.toc())
         self.assertTrue(frame.represents(b'MCDI'))
 
 
-class MusicMatchMysteryFrameTests(unittest.TestCase):
-    def test_exposes_toc(self):
+class NCONTests(unittest.TestCase):
+    def test_recognizes_music_match_frames(self):
         # Arrange
-        header = FrameHeader(b'MCDI', 1000, 0)
+        header = FrameHeader(b'NCON', 1000, 0)
         fields = b'\xf0\xfa\xccweirdbinaryblob\xff'
 
         # System under test
-        frame = MusicMatchMysteryFrame(header, fields)
+        frame = NCON(header, fields)
 
         # Act - Assert
-        self.assertEqual(type(frame), MusicMatchMysteryFrame)
+        self.assertEqual(type(frame), NCON)
         self.assertEqual(fields, frame.fields())
         self.assertTrue(frame.represents(b'NCON'))
 
 
-class CommentFrameTests(unittest.TestCase):
+class COMMTests(unittest.TestCase):
     def test_reads_from_file(self):
         # Arrange
         header = b'COMM\x00\x00\x00\x0a\x00\x00'
@@ -403,7 +401,7 @@ class CommentFrameTests(unittest.TestCase):
         frame = Frame.from_file(stream)
 
         # Assert
-        self.assertEqual(type(frame), CommentFrame)
+        self.assertEqual(type(frame), COMM)
         self.assertEqual(frame.id(), 'COMM')
         self.assertEqual(frame.language(), 'eng')
         self.assertEqual(frame.description(), '')

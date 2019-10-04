@@ -1,6 +1,6 @@
 import unittest
 
-from id3vx.frame import FrameHeader, CommentFrame
+from id3vx.frame import FrameHeader, COMM
 
 
 class CommentFrameTests(unittest.TestCase):
@@ -19,7 +19,7 @@ class CommentFrameTests(unittest.TestCase):
         fields = codec + language + description + term + comment + term
 
         # System under test
-        frame = CommentFrame(header, fields)
+        frame = COMM(header, fields)
 
         # Assert
         self.assertEqual(frame.comment(), comment.decode(encoding))
@@ -43,7 +43,7 @@ class CommentFrameTests(unittest.TestCase):
         fields = codec + language + description + term + comment + term
 
         # System under test
-        frame = CommentFrame(header, fields)
+        frame = COMM(header, fields)
 
         # Assert
         self.assertEqual(frame.comment(), "")
@@ -53,7 +53,7 @@ class CommentFrameTests(unittest.TestCase):
     def test_represents_comment_frames(self):
         """Represents Frame ID 'COMM'"""
         # System under test
-        frame = CommentFrame
+        frame = COMM
 
         # Act - Assert
         self.assertTrue(frame.represents(b'COMM'))
