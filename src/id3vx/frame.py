@@ -482,7 +482,6 @@ class COMM(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Comments>`_
     """
-
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -505,6 +504,52 @@ class COMM(Frame):
         return f'[language {self.language()}]' \
                f'[description {self.description()}] ' \
                f'[comment={self.comment()}]'
+
+
+class PCNT(Frame):
+    """Play counter (PCNT)
+
+    <Header for 'Play counter', ID: "PCNT">
+    Counter        $xx xx xx xx (xx ...)
+
+    See `specification <http://id3.org/id3v2.3.0#Play_counter>`_
+    """
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+
+        # TODO: who listens to a song more than 2 ** 32 times?
+        with BytesIO(fields) as stream:
+            self._counter = IntegerField.read(stream)
+
+    def counter(self):
+        return int(self._counter)
+
+    def __str__(self):
+        return f'[counter={self.counter()}]'
+
+
+class USLT(Frame):
+    """Unsynchronised lyrics (USLT)
+
+    <Header for 'Unsynchronised lyrics/text transcription', ID: "USLT">
+    Text encoding       $xx
+    Language            $xx xx xx
+    Content descriptor  <text string according to encoding> $00 (00)
+    Lyrics/text         <full text string according to encoding>
+    """
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+
+        with BytesIO(fields) as stream:
+            self._codec = CodecField.read(stream)
+            self._language = FixedLengthTextField.read(stream, 3)
+            self._description = EncodedTextField.read(stream, self._codec)
+            self._lyrics = EncodedTextField.read(stream, self._codec)
+
+    def __str__(self):
+        return f'[language={self._language}]' \
+               f'[description={self._description}]' \
+               f'[lyrics={self._lyrics}]'
 
 
 class CHAP(Frame):
@@ -575,6 +620,26 @@ class CHAP(Frame):
                               self.offset_end())
 
         return header + element_id + timings + self._sub_frames
+
+
+class USER(Frame):
+    """Terms of use (USER)
+
+    <Header for 'Terms of use frame', ID: "USER">
+    Text encoding   $xx
+    Language        $xx xx xx
+    The actual text <text string according to encoding>
+    """
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+
+        with BytesIO(fields) as stream:
+            self._codec = CodecField.read(stream)
+            self._language = FixedLengthTextField.read(stream, 3)
+            self._text = EncodedTextField.read(stream, self._codec)
+
+    def __str__(self):
+        return f'[language={self._language}][text={self._text}]'
 
 
 DECLARED_FRAMES = {
@@ -663,64 +728,44 @@ class TALB(TextFrame):
     """Album/Movie/Show title"""
 
 
+class TCMP(TextFrame):
+    """Part of a compilation (iTunes)"""
+
+
 class TBPM(TextFrame):
-    """BPM' frame contains the number of beats per minute in the mainpart
-    of the audio. The BPM is an integer and represented as a numerical string.
-    """
+    """BPM"""
 
 
 class TCOM(TextFrame):
-    """The 'Composer(s)' frame is intended for the name of the composer(s).
-    They are seperated with the "/" character.
-    """
+    """Composer(s)"""
 
 
 class TCON(TextFrame):
-    """The 'Content type', which previously was stored as a one byte numeric
-    value only, is now a numeric string. You may use one or several of the
-    types as ID3v1.1 did or, since the category list would be impossible to
-    maintain with accurate and up to date categories, define your own.
-    """
+    """Content type"""
 
 
 class TCOP(TextFrame):
-    """The 'Copyright message' frame, which must begin with a year and a space
-    character (making five characters), is intended for the copyright holder
-    of the original sound, not the audio file itself. The absence of this
-    frame means only that the copyright information is unavailable or has been
-    removed, and must not be interpreted to mean that the sound is public
-    domain. Every time this field is displayed the field must be
-    preceded with "Copyright © ".
-    """
+    """Copyright message"""
 
 
 class TDAT(TextFrame):
-    """The 'Date' frame is a numeric string in the DDMM format containing the
-    date for the recording. This field is always four characters long.
-    """
+    """Date"""
 
 
 class TDLY(TextFrame):
-    """The 'Playlist delay' defines the numbers of milliseconds of silence
-    between every song in a playlist. The player should use the "ETC" frame, if
-    present, to skip initial silence and silence at the end of the audio to
-    match the 'Playlist delay' time. The time is represented as a numeric
-    string.
-    """
+    """Playlist delay"""
 
 
 class TENC(TextFrame):
-    """The 'Encoded by' frame contains the name of the person or organisation
-    that encoded the audio file. This field may contain a copyright message,
-    if the audio file also is copyrighted by the encoder.
-    """
+    """Encoded by"""
+
+
+class TENB(TextFrame):
+    """Encoded by (???). Found with iTunes tagged mp3s."""
 
 
 class TEXT(TextFrame):
-    """The 'Lyricist(s)/Text writer(s)' frame is intended for the writer(s) of
-    the text or lyrics in the recording.
-    They are seperated with the "/" character.
-    """
+    """Lyricist(s)/Text writer(s)"""
 
 
 class TFLT(TextFrame):
@@ -796,11 +841,15 @@ class TPE3(TextFrame):
 
 
 class TPE4(TextFrame):
-    """'Interpreted, remixed, or otherwise modified by"""
+    """Interpreted, remixed, or otherwise modified by"""
 
 
 class TPOS(TextFrame):
-    """'Part of a set'"""
+    """Part of a set"""
+
+
+class TPRO(TextFrame):
+    """Produced notice"""
 
 
 class TPUB(TextFrame):
