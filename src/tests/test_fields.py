@@ -2,8 +2,8 @@ import unittest
 from io import BytesIO
 
 from id3vx.codec import UTF16Codec, Codec
-from id3vx.fields import BinaryField, TextField, FixedLengthTextField
-from id3vx.fields import EncodedTextField, CodecField, IntegerField
+from id3vx.fields import EncodedTextField, CodecField, IntegerField, \
+    GrowingIntegerField, BinaryField, TextField, FixedLengthTextField
 
 
 class FixedLengthTextFieldTests(unittest.TestCase):
@@ -204,6 +204,59 @@ class EncodedTextFieldTests(unittest.TestCase):
 
         # Assert
         self.assertEqual(text, "")
+
+
+class GrowingIntegerFieldTests(unittest.TestCase):
+    def test_reads_many_bytes(self):
+        """Reads all bytes"""
+        # Arrange
+        byte_string = b'\x00\x00\xff\xff\xff\xff\x00\x00'
+        expected_int = 0xffffffff0000
+
+        stream = BytesIO(byte_string)
+
+        # System under test
+        field = GrowingIntegerField("field")
+
+        # Act
+        value = field.read(stream)
+
+        # Assert
+        self.assertEqual(value, expected_int)
+
+    def test_reads_zero_byte_int(self):
+        """Reads some bytes"""
+        # Arrange
+        byte_string = b''
+        expected_int = 0
+
+        stream = BytesIO(byte_string)
+
+        # System under test
+        field = GrowingIntegerField("field")
+
+        # Act
+        value = field.read(stream)
+
+        # Assert
+        self.assertEqual(value, expected_int)
+
+    def test_reads_single_byte_int(self):
+        """Reads a single byte as int"""
+        # Arrange
+        byte_string = b'\xff'
+        expected_int = 0xff
+
+        stream = BytesIO(byte_string)
+
+        # System under test
+        field = GrowingIntegerField("field")
+
+        # Act
+        value = field.read(stream)
+
+        # Assert
+        self.assertEqual(value, expected_int)
 
 
 class IntegerFieldTests(unittest.TestCase):

@@ -1,4 +1,5 @@
 import unittest
+from io import BytesIO
 
 from id3vx.frame import FrameHeader, COMM
 
@@ -18,8 +19,10 @@ class CommentFrameTests(unittest.TestCase):
 
         fields = codec + language + description + term + comment + term
 
+        stream = BytesIO(bytes(header) + fields)
+
         # System under test
-        frame = COMM.create_from(header, fields)
+        frame = COMM.read(stream)
 
         # Assert
         self.assertEqual(frame.comment, comment.decode(encoding))
@@ -39,11 +42,11 @@ class CommentFrameTests(unittest.TestCase):
         language = "eng".encode("latin1")
         description = b''
         comment = b''
-
         fields = codec + language + description + term + comment + term
+        stream = BytesIO(bytes(header) + fields)
 
         # System under test
-        frame = COMM.create_from(header, fields)
+        frame = COMM.read(stream)
 
         # Assert
         self.assertEqual(frame.comment, "")

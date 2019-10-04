@@ -42,6 +42,15 @@ class IntegerField(Field):
         return int.from_bytes(stream.read(self._length), "big")
 
 
+class GrowingIntegerField(IntegerField):
+    """Reads all bytes in the stream and interprets them as int
+
+    (as if that made any sense at all.)
+    """
+    def __init__(self, name):
+        super().__init__(name, -1)
+
+
 class EnumField(IntegerField):
     def __init__(self, name, enum_type, length):
         super().__init__(name, length)

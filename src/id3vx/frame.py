@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from enum import IntFlag
 from io import BytesIO
 
-from id3vx.binary import unsynchsafe
-from id3vx.fields import TextField, BinaryField, FixedLengthTextField, Fields
-from id3vx.fields import CodecField, EncodedTextField, IntegerField, EnumField
+from .binary import unsynchsafe
 from .codec import Codec
+from .fields import TextField, BinaryField, FixedLengthTextField, Fields, \
+    GrowingIntegerField, CodecField, EncodedTextField, IntegerField, EnumField
 from .text import shorten
 
 
@@ -49,6 +49,7 @@ class FrameHeader:
     Refer to `ID3v2.3 frame header specification
     <http://id3.org/id3v2.3.0#ID3v2_frame_overview>`_
     """
+
     class Flags(IntFlag):
         """Represents 2-byte flags of the frame header.
 
@@ -95,7 +96,7 @@ class FrameHeader:
         return f"FrameHeader({self.identifier}," \
                f"frame_size={self.frame_size}," \
                f"flags={str(self.flags)}" \
-               f"{['',',synchsafe'][self.synchsafe_size]}"
+               f"{['', ',synchsafe'][self.synchsafe_size]}"
 
     def __bool__(self):
         return self.frame_size > 0
@@ -116,8 +117,8 @@ class Frame:
 
     FIELDS = Fields()
 
-    @classmethod
-    def read(cls, stream, synchsafe_size=False):
+    @staticmethod
+    def read(stream, synchsafe_size=False):
         """Reads a single frame from a stream"""
         header = FrameHeader.read(stream, synchsafe_size)
 
@@ -127,23 +128,13 @@ class Frame:
         frame_bytes = stream.read(header.frame_size)
         frame_class = FRAMES.get(header.identifier, Frame)
 
-        return frame_class.create_from(header, frame_bytes)
-
-    @classmethod
-    def create_from(cls, header, frame_bytes):
-        """Creates a new Frame from header and frame_bytes"""
         with BytesIO(frame_bytes) as stream:
-            fields = cls.FIELDS.read(stream)
+            fields = frame_class.FIELDS.read(stream)
 
-        # noinspection PyArgumentList
-        return cls(header, frame_bytes, **fields)
+        return frame_class(header, frame_bytes, **fields)
 
     def id(self):
-        """The 4-letter frame id of this frame.
-
-        See `specification <http://id3.org/id3v2.3.0#Declared_ID3v2_frames>`_
-        for a full list.
-        """
+        """The 4-letter frame id of this frame."""
         return self.header.identifier
 
     def __len__(self):
@@ -174,6 +165,7 @@ class APIC(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Attached_picture>`_
     """
+
     class PictureType(enum.Enum):
         OTHER = 0x00  # "Other"
         ICON = 0x01  # "32x32 pixels 'file icon' (PNG only)"
@@ -394,9 +386,8 @@ class PCNT(Frame):
     """
     counter: int
 
-    # FIXME: doesn't (but who listens to a song more than 2 ** 32 - 1 times?)
     FIELDS = Fields(
-        IntegerField("counter")
+        GrowingIntegerField("counter")
     )
 
 

@@ -1,4 +1,5 @@
 import unittest
+from io import BytesIO
 
 from id3vx.frame import FrameHeader, PRIV
 
@@ -12,8 +13,10 @@ class PrivateFrameTests(unittest.TestCase):
         random_binary = b'\xfa\x0a\x0c\x00\x00\xff\xca'
         fields = bytes(owner, "latin1") + b'\x00' + random_binary
 
+        stream = BytesIO(bytes(header) + fields)
+
         # Act
-        frame = PRIV.create_from(header, fields)
+        frame = PRIV.read(stream)
 
         # Assert
         self.assertEqual(frame.header, header)

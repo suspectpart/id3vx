@@ -1,7 +1,7 @@
 import unittest
 from io import BytesIO
 
-from id3vx.frame import FrameHeader, Frame, TextFrame, Frames
+from id3vx.frame import FrameHeader, Frame, TextFrame, Frames, PCNT
 from id3vx.frame import CHAP, MCDI, NCON, COMM, TALB, APIC, PRIV
 from id3vx.tag import TagHeader
 
@@ -10,15 +10,16 @@ class FramesTests(unittest.TestCase):
     def test_reads_frames_from_file(self):
         # Arrange
         header_a = FrameHeader("TALB", 9, FrameHeader.Flags.Compression, False)
-        frame_a = PRIV.create_from(header_a, b'\x00thealbum')
+        frame_a = PRIV.read(BytesIO(bytes(header_a) + b'\x00thealbum'))
         header_b = FrameHeader("TIT2", 10, FrameHeader.Flags.Encryption, False)
-        frame_b = PRIV.create_from(header_b, b'\x00theartist')
+        frame_b = PRIV.read(BytesIO(bytes(header_b) + b'\x00theartist'))
         tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 39)
 
         byte_string = bytes(frame_a) + bytes(frame_b)
+        stream = BytesIO(byte_string)
 
         # Act
-        frames = Frames.read(BytesIO(byte_string), tag_header)
+        frames = Frames.read(stream, tag_header)
 
         # Assert
         self.assertEqual(len(frames), 2)
@@ -31,7 +32,9 @@ class FramesTests(unittest.TestCase):
         """Stops on first padding frame"""
         # Arrange
         header = FrameHeader("TALB", 9, FrameHeader.Flags.Compression, False)
-        frame = PRIV.create_from(header, b'\x00thealbum')
+        fields = b'\x00thealbum'
+        stream = BytesIO(bytes(header) + fields)
+        frame = PRIV.read(stream)
         padding = b'\x00' * 81
         tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 100)
 
@@ -63,6 +66,23 @@ class FrameHeaderTests(unittest.TestCase):
         self.assertEqual(header.frame_size, 255)
         self.assertEqual(header.flags, FrameHeader.Flags(0))
         self.assertEqual(header.identifier, "PRIV")
+
+    def test_read_synchsafe_size(self):
+        """Reads FrameHeader from a bytes stream"""
+        # Arrange
+        frame_id = b'PRIV'
+        size = b'\x00\x00\x02\x01'  # would be 513 in plain binary
+        flags = b'\x00\x00'
+
+        expected_size = 257  # ... but is 257 in synchsafe world
+
+        stream = BytesIO(frame_id + size + flags)
+
+        # Act
+        header = FrameHeader.read(stream, synchsafe_size=True)
+
+        # Assert
+        self.assertEqual(header.frame_size, expected_size)
 
     def test_reads_all_flags(self):
         """Reads all flags correctly"""
@@ -220,7 +240,7 @@ class FrameTests(unittest.TestCase):
         fields = b'\x00Album'
         size = len(fields)
         header = FrameHeader('TALB', size, 0, False)
-        frame = TextFrame.create_from(header, fields)
+        frame = TextFrame.read(BytesIO(bytes(header) + fields))
 
         stream = BytesIO(bytes(frame))
 
@@ -250,7 +270,7 @@ class APICTests(unittest.TestCase):
         expected_mime_type = "image/paper"
 
         # System under test
-        frame = APIC.create_from(header, fields)
+        frame = APIC.read(BytesIO(bytes(header) + fields))
 
         # Act - Assert
         self.assertEqual(type(frame), APIC)
@@ -272,21 +292,20 @@ class CHAPTests(unittest.TestCase):
 
         element_id = 'chp'
         element_id_bytes = element_id.encode("latin1")
-
         t_start = b'\x00\xFF\xFF\xEE'
         t_end = b'\x00\x0A\x0F\xEE'
         o_start = b'\x00\xFF\xFF\xEE'
         o_end = b'\x00\x0A\x0F\xEE'
-
         offset_start = int.from_bytes(o_start, "big")
         offset_end = int.from_bytes(t_end, "big")
 
         fields = element_id_bytes + b'\x00' + t_start + t_end + o_start + o_end
 
         expected_bytes = bytes(header) + fields
+        stream = BytesIO(bytes(header) + fields)
 
         # System under test
-        frame = CHAP.create_from(header, fields)
+        frame = CHAP.read(stream)
 
         # Act - Assert
         self.assertEqual(type(frame), CHAP)
@@ -298,9 +317,11 @@ class CHAPTests(unittest.TestCase):
         self.assertEqual(bytes(frame), expected_bytes)
 
     def test_subframes(self):
+        """FIXME: this test sucks"""
         # Arrange
-        sub_frame_header = FrameHeader('TIT2', 1000, 0, False)
-        sub_frame = TextFrame.create_from(sub_frame_header, b'\x00sometext')
+        sub_fields = b'\x00sometext\x00'
+        sub_header = FrameHeader('TIT2', 1000, 0, False)
+        sub_frame = TextFrame.read(BytesIO(bytes(sub_header) + sub_fields))
 
         header = FrameHeader('CHAP', 1000, 0, False)
 
@@ -316,7 +337,7 @@ class CHAPTests(unittest.TestCase):
         fields += bytes(sub_frame)
 
         # System under test
-        frame = CHAP.create_from(header, fields)
+        frame = CHAP.read(BytesIO(bytes(header) + fields))
 
         # Act
         sub_frames = list(frame.sub_frames())
@@ -332,9 +353,10 @@ class MCDITests(unittest.TestCase):
         # Arrange
         header = FrameHeader('MCDI', 1000, 0, False)
         fields = b'\xf0\xfa\xccsometocdata\xff'
+        stream = BytesIO(bytes(header) + fields)
 
         # System under test
-        frame = MCDI.create_from(header, fields)
+        frame = MCDI.read(stream)
 
         # Act - Assert
         self.assertEqual(type(frame), MCDI)
@@ -346,9 +368,10 @@ class NCONTests(unittest.TestCase):
         # Arrange
         header = FrameHeader('NCON', 1000, 0, False)
         fields = b'\xf0\xfa\xccweirdbinaryblob\xff'
+        stream = BytesIO(bytes(header) + fields)
 
         # System under test
-        frame = NCON(header, fields)
+        frame = NCON.read(stream)
 
         # Act - Assert
         self.assertEqual(type(frame), NCON)
@@ -360,11 +383,10 @@ class COMMTests(unittest.TestCase):
         # Arrange
         header = b'COMM\x00\x00\x00\x0a\x00\x00'
         fields = b'\x01\x65\x6e\x67\xff\xfe\x00\x00\xff\xfe'
-
         stream = BytesIO(header + fields)
 
         # Act
-        frame = Frame.read(stream)
+        frame = COMM.read(stream)
 
         # Assert
         self.assertEqual(type(frame), COMM)
@@ -372,3 +394,20 @@ class COMMTests(unittest.TestCase):
         self.assertEqual(frame.language, 'eng')
         self.assertEqual(frame.description, '')
         self.assertEqual(frame.comment, '')
+
+
+class PCNTTests(unittest.TestCase):
+    def test_reads_pcnt_frame_from_stream(self):
+        """Counts all 18446744073709550304 plays of Old Time Road"""
+        # Arrange
+        header = b'PCNT\x00\x00\x00\x0a\x00\x00'
+        fields = b'\xff\xff\xff\xff\xff\xff\xfa\xe0'
+        expected_play_count = 0xfffffffffffffae0
+        stream = BytesIO(header + fields)
+
+        # Act
+        frame = PCNT.read(stream)
+
+        # Assert
+        self.assertEqual(type(frame), PCNT)
+        self.assertEqual(frame.counter, expected_play_count)
