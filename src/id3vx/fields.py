@@ -1,3 +1,5 @@
+import enum
+
 from id3vx.codec import Codec
 
 
@@ -38,6 +40,16 @@ class IntegerField(Field):
 
     def read(self, stream) -> int:
         return int.from_bytes(stream.read(self._length), "big")
+
+
+class EnumField(IntegerField):
+    def __init__(self, name, enum_type, length):
+        super().__init__(name, length)
+
+        self._enum_type = enum_type
+
+    def read(self, stream) -> enum.Enum:
+        return self._enum_type(super().read(stream))
 
 
 class CodecField(Field):

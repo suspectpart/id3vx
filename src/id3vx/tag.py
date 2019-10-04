@@ -42,7 +42,7 @@ class TagHeader:
         FooterPresent = 1 << 4
 
     @classmethod
-    def from_file(cls, mp3):
+    def read(cls, mp3):
         block = mp3.read(TagHeader.SIZE)
         identifier, major, minor, flags, size = struct.unpack('>3sBBBL', block)
 
@@ -116,8 +116,8 @@ class Tag:
     def from_file(cls, path):
         """Read full ID3v2.3 tag from mp3 file"""
         with open(path, 'rb') as mp3:
-            header = TagHeader.from_file(mp3)
-            frames = Frames.from_file(mp3, header)
+            header = TagHeader.read(mp3)
+            frames = Frames.read(mp3, header)
 
         return cls(header, frames)
 

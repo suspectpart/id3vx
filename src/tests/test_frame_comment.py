@@ -19,7 +19,7 @@ class CommentFrameTests(unittest.TestCase):
         fields = codec + language + description + term + comment + term
 
         # System under test
-        frame = COMM.read_fields(header, fields)
+        frame = COMM.create_from(header, fields)
 
         # Assert
         self.assertEqual(frame.comment, comment.decode(encoding))
@@ -43,7 +43,7 @@ class CommentFrameTests(unittest.TestCase):
         fields = codec + language + description + term + comment + term
 
         # System under test
-        frame = COMM.read_fields(header, fields)
+        frame = COMM.create_from(header, fields)
 
         # Assert
         self.assertEqual(frame.comment, "")

@@ -10,15 +10,15 @@ class FramesTests(unittest.TestCase):
     def test_reads_frames_from_file(self):
         # Arrange
         header_a = FrameHeader(b"TALB", 9, FrameHeader.Flags.Compression)
-        frame_a = PRIV.read_fields(header_a, b'\x00thealbum')
+        frame_a = PRIV.create_from(header_a, b'\x00thealbum')
         header_b = FrameHeader(b"TIT2", 10, FrameHeader.Flags.Encryption)
-        frame_b = PRIV.read_fields(header_b, b'\x00theartist')
+        frame_b = PRIV.create_from(header_b, b'\x00theartist')
         tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 39)
 
         byte_string = bytes(frame_a) + bytes(frame_b)
 
         # Act
-        frames = Frames.from_file(BytesIO(byte_string), tag_header)
+        frames = Frames.read(BytesIO(byte_string), tag_header)
 
         # Assert
         self.assertEqual(len(frames), 2)
@@ -31,14 +31,14 @@ class FramesTests(unittest.TestCase):
         """Stops on first padding frame"""
         # Arrange
         header = FrameHeader(b"TALB", 9, FrameHeader.Flags.Compression)
-        frame = PRIV.read_fields(header, b'\x00thealbum')
+        frame = PRIV.create_from(header, b'\x00thealbum')
         padding = b'\x00' * 81
         tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 100)
 
         byte_string = bytes(frame) + padding
 
         # Act
-        frames = Frames.from_file(BytesIO(byte_string), tag_header)
+        frames = Frames.read(BytesIO(byte_string), tag_header)
 
         # Assert
         self.assertEqual(len(frames), 1)
@@ -57,7 +57,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size + flags)
 
         # Act
-        header = FrameHeader.from_file(stream)
+        header = FrameHeader.read(stream)
 
         # Assert
         self.assertEqual(header.frame_size(), 255)
@@ -74,7 +74,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size + flags)
 
         # Act
-        header = FrameHeader.from_file(stream)
+        header = FrameHeader.read(stream)
 
         # Assert
         self.assertIn(FrameHeader.Flags.Compression, header.flags())
@@ -94,7 +94,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size + flags)
 
         # Act
-        header = FrameHeader.from_file(stream)
+        header = FrameHeader.read(stream)
 
         # Assert
         self.assertIn(FrameHeader.Flags.Compression, header.flags())
@@ -111,7 +111,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + frame_size + flags)
 
         # Act
-        header = FrameHeader.from_file(stream)
+        header = FrameHeader.read(stream)
 
         # Assert
         self.assertEqual(header.frame_size(), 1)
@@ -127,7 +127,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size)
 
         # Act
-        header = FrameHeader.from_file(stream)
+        header = FrameHeader.read(stream)
 
         # Assert
         self.assertIsNone(header)
@@ -142,7 +142,7 @@ class FrameHeaderTests(unittest.TestCase):
         stream = BytesIO(frame_id + size + flags)
 
         # Act
-        header = FrameHeader.from_file(stream)
+        header = FrameHeader.read(stream)
 
         # Assert
         self.assertIsNone(header)
@@ -182,7 +182,6 @@ class FrameTests(unittest.TestCase):
         self.assertEqual(frame.fields, fields)
         self.assertIn(str(fields), repr(frame))
         self.assertEqual(len(frame), frame_size + len(header))
-        self.assertEqual(frame.name(), "Private frame")
 
     def test_serializes_to_bytes(self):
         """Serializes itself to bytes"""
@@ -200,18 +199,6 @@ class FrameTests(unittest.TestCase):
         # Assert
         self.assertEqual(byte_string, header_bytes + fields)
 
-    def test_defaults_name_to_identifier(self):
-        """Defaults to Frame ID if name is unknown"""
-        # Arrange
-        header = FrameHeader(b'ABCD', 100, 0)
-        fields = b'\x0a\x0f\x00\x0f\x0c'
-
-        # System under test
-        frame = Frame(header, fields)
-
-        # Act - Assert
-        self.assertEqual(frame.name(), "ABCD")
-
     def test_no_frame_if_header_invalid(self):
         """Defaults to Frame ID if name is unknown"""
         # Arrange
@@ -221,7 +208,7 @@ class FrameTests(unittest.TestCase):
         stream = BytesIO(broken_header + fields)
 
         # System under test
-        frame = Frame.from_file(stream)
+        frame = Frame.read(stream)
 
         # Act - Assert
         self.assertIsNone(frame)
@@ -232,12 +219,12 @@ class FrameTests(unittest.TestCase):
         fields = b'\x00Album'
         size = len(fields)
         header = FrameHeader(b'TALB', size, 0)
-        frame = TextFrame.read_fields(header, fields)
+        frame = TextFrame.create_from(header, fields)
 
         stream = BytesIO(bytes(frame))
 
         # System under test
-        frame = Frame.from_file(stream)
+        frame = Frame.read(stream)
 
         # Act - Assert
         self.assertEqual(type(frame), TALB)
@@ -258,11 +245,11 @@ class APICTests(unittest.TestCase):
 
         fields = encoding + mime_type + picture_type + desc_bytes + data
 
-        expected_pic_type = 17
+        expected_pic_type = APIC.PictureType.BRIGHT_COLORED_FISH
         expected_mime_type = "image/paper"
 
         # System under test
-        frame = APIC.read_fields(header, fields)
+        frame = APIC.create_from(header, fields)
 
         # Act - Assert
         self.assertEqual(type(frame), APIC)
@@ -298,7 +285,7 @@ class CHAPTests(unittest.TestCase):
         expected_bytes = bytes(header) + fields
 
         # System under test
-        frame = CHAP.read_fields(header, fields)
+        frame = CHAP.create_from(header, fields)
 
         # Act - Assert
         self.assertEqual(type(frame), CHAP)
@@ -312,7 +299,7 @@ class CHAPTests(unittest.TestCase):
     def test_subframes(self):
         # Arrange
         sub_frame_header = FrameHeader(b'TIT2', 1000, 0)
-        sub_frame = TextFrame.read_fields(sub_frame_header, b'\x00sometext')
+        sub_frame = TextFrame.create_from(sub_frame_header, b'\x00sometext')
 
         header = FrameHeader(b'CHAP', 1000, 0)
 
@@ -328,7 +315,7 @@ class CHAPTests(unittest.TestCase):
         fields += bytes(sub_frame)
 
         # System under test
-        frame = CHAP.read_fields(header, fields)
+        frame = CHAP.create_from(header, fields)
 
         # Act
         sub_frames = list(frame.sub_frames())
@@ -346,7 +333,7 @@ class MCDITests(unittest.TestCase):
         fields = b'\xf0\xfa\xccsometocdata\xff'
 
         # System under test
-        frame = MCDI.read_fields(header, fields)
+        frame = MCDI.create_from(header, fields)
 
         # Act - Assert
         self.assertEqual(type(frame), MCDI)
@@ -376,7 +363,7 @@ class COMMTests(unittest.TestCase):
         stream = BytesIO(header + fields)
 
         # Act
-        frame = Frame.from_file(stream)
+        frame = Frame.read(stream)
 
         # Assert
         self.assertEqual(type(frame), COMM)

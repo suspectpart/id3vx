@@ -63,7 +63,7 @@ class TagHeaderTest(unittest.TestCase):
         expected_tag_size = unsynchsafe(0x0A0A)
 
         # System under test / Act
-        header = TagHeader.from_file(BytesIO(byte_string))
+        header = TagHeader.read(BytesIO(byte_string))
 
         # Assert
         self.assertEqual(len(header), 10)
@@ -78,7 +78,7 @@ class TagHeaderTest(unittest.TestCase):
         byte_string = b'ID3\x03\x01\x60\x00\x00\x00\x0A'
 
         # System under test / Act
-        header = TagHeader.from_file(BytesIO(byte_string))
+        header = TagHeader.read(BytesIO(byte_string))
 
         # Act
         serialized = bytes(header)

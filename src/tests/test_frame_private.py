@@ -13,7 +13,7 @@ class PrivateFrameTests(unittest.TestCase):
         fields = bytes(owner, "latin1") + b'\x00' + random_binary
 
         # Act
-        frame = PRIV.read_fields(header, fields)
+        frame = PRIV.create_from(header, fields)
 
         # Assert
         self.assertEqual(frame.header, header)

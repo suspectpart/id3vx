@@ -16,7 +16,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         fields = encoding + description + terminator + text + terminator
 
         # Act
-        frame = TXXX.read_fields(header, fields)
+        frame = TXXX.create_from(header, fields)
 
         # Assert
         self.assertEqual(frame.text, text.decode("utf-16"))
@@ -36,7 +36,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         fields = encoding + description + terminator + text
 
         # Act
-        frame = TXXX.read_fields(header, fields)
+        frame = TXXX.create_from(header, fields)
 
         # Assert
         self.assertEqual(frame.text, text.decode("utf-8"))
@@ -56,7 +56,7 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         fields = encoding + description + terminator + text
 
         # Act
-        frame = TXXX.read_fields(header, fields)
+        frame = TXXX.create_from(header, fields)
 
         # Assert
         self.assertEqual(frame.text, text.decode("utf-8"))

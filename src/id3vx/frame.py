@@ -3,26 +3,23 @@ import enum
 import inspect
 import struct
 import sys
-from collections import namedtuple
 from dataclasses import dataclass
 from enum import IntFlag
 from io import BytesIO
 
 from id3vx.binary import unsynchsafe
 from id3vx.fields import TextField, BinaryField, FixedLengthTextField, Fields
-from id3vx.fields import CodecField, EncodedTextField, IntegerField
+from id3vx.fields import CodecField, EncodedTextField, IntegerField, EnumField
 from .codec import Codec
 from .text import shorten
-
-# FIXME: Shorten fields!
 
 
 class Frames(list):
     """Represents a all Frames in a Tag."""
 
     @classmethod
-    def from_file(cls, mp3, header):
-        """Reads frames from file
+    def read(cls, stream, header):
+        """Reads all frames from a stream
 
         Read consecutive frames up until tag size specified in the header.
         Stops reading frames when an empty (padding) frame is encountered.
@@ -30,8 +27,8 @@ class Frames(list):
         synchsafe_frame_size = header.version()[0] == 4
         frames = []
 
-        while mp3.tell() < header.tag_size():
-            frame = Frame.from_file(mp3, synchsafe_frame_size)
+        while stream.tell() < header.tag_size():
+            frame = Frame.read(stream, synchsafe_frame_size)
 
             if not frame:
                 # stop on first padding frame
@@ -69,9 +66,10 @@ class FrameHeader:
         GroupingIdentity = 1 << 5
 
     @classmethod
-    def from_file(cls, mp3, unsynchronize_size=False):
+    def read(cls, stream, unsynchronize_size=False):
+        """Reads a single, 10-byte FrameHeader from a byte stream"""
         try:
-            block = mp3.read(FrameHeader.SIZE)
+            block = stream.read(FrameHeader.SIZE)
             identifier, size, flags = struct.unpack('>4sLH', block)
 
             # FIXME: hacky, handed down all the way. needs some polymorphism
@@ -124,24 +122,26 @@ class Frame:
     FIELDS = Fields()
 
     @classmethod
-    def from_file(cls, mp3, unsynchronize_size=False):
-        """Read the next frame from an mp3 file object"""
-        header = FrameHeader.from_file(mp3, unsynchronize_size)
+    def read(cls, stream, unsynchronize_size=False):
+        """Reads a single frame from a stream"""
+        header = FrameHeader.read(stream, unsynchronize_size)
 
         if not header:
             return None
 
-        frame_bytes = mp3.read(header.frame_size())
-        frame = FRAMES.get(header.id(), Frame)
+        frame_bytes = stream.read(header.frame_size())
+        frame_class = FRAMES.get(header.id(), Frame)
 
-        return frame.read_fields(header, frame_bytes)
+        return frame_class.create_from(header, frame_bytes)
 
     @classmethod
-    def read_fields(cls, header, raw_bytes):
-        with BytesIO(raw_bytes) as stream:
+    def create_from(cls, header, frame_bytes):
+        """Creates a new Frame from header and frame_bytes"""
+        with BytesIO(frame_bytes) as stream:
             fields = cls.FIELDS.read(stream)
+
             # noinspection PyArgumentList
-            return cls(header, raw_bytes, **fields)
+            return cls(header, frame_bytes, **fields)
 
     def id(self):
         """The 4-letter frame id of this frame.
@@ -150,14 +150,6 @@ class Frame:
         for a full list.
         """
         return self.header.id()
-
-    def name(self):
-        """Human-readable name of a frame.
-
-        Defaults to the 4-letter id if name can not be looked up
-        (e.g. when it is a custom extension).
-        """
-        return DECLARED_FRAMES.get(self.id(), self.id())
 
     def __len__(self):
         """The overall size of the frame in bytes, including header."""
@@ -187,20 +179,6 @@ class APIC(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Attached_picture>`_
     """
-    codec: Codec
-    mime_type: str
-    picture_type: int
-    description: str
-    data: bytes
-
-    FIELDS = Fields(
-        CodecField(),
-        TextField("mime_type"),
-        IntegerField("picture_type", 1),
-        EncodedTextField("description"),
-        BinaryField("data"),
-    )
-
     class PictureType(enum.Enum):
         OTHER = 0x00  # "Other"
         ICON = 0x01  # "32x32 pixels 'file icon' (PNG only)"
@@ -223,6 +201,20 @@ class APIC(Frame):
         ILLUSTRATION = 0x12  # "Illustration"
         BAND_LOGO_TYPE = 0x13  # "Band/artist logotype"
         PUBLISHER_LOGO_TYPE = 0x14  # "Publisher/Studio logotype"
+
+    codec: Codec
+    mime_type: str
+    picture_type: PictureType
+    description: str
+    data: bytes
+
+    FIELDS = Fields(
+        CodecField(),
+        TextField("mime_type"),
+        EnumField("picture_type", PictureType, 1),
+        EncodedTextField("description"),
+        BinaryField("data"),
+    )
 
 
 @dataclass(repr=False)
@@ -262,12 +254,6 @@ class PRIV(Frame):
 
 @dataclass(repr=False)
 class GEOB(Frame):
-    codec: Codec
-    mime_type: str
-    filename: str
-    description: str
-    obj: str
-
     """General encapsulated object (GEOB)
 
     <Header for 'General encapsulated object', ID: "GEOB">
@@ -279,12 +265,18 @@ class GEOB(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#General_encapsulated_object>`_
     """
+    codec: Codec
+    mime_type: str
+    filename: str
+    description: str
+    obj: str
+
     FIELDS = Fields(
         CodecField(),
         TextField("mime_type"),
         EncodedTextField("filename"),
         EncodedTextField("description"),
-        BinaryField("obj")
+        BinaryField("obj"),
     )
 
 
@@ -466,12 +458,10 @@ class CHAP(Frame):
         BinaryField("_sub_frames"),
     )
 
-    Timings = namedtuple("Timings", "start, end, start_offset, end_offset")
-
     def sub_frames(self):
         """CHAP frames include 0-2 sub frames (of type TIT2 and TIT3)"""
         with BytesIO(self._sub_frames) as io:
-            frames = [Frame.from_file(io), Frame.from_file(io)]
+            frames = [Frame.read(io), Frame.read(io)]
 
         return (f for f in frames if f)
 
@@ -748,88 +738,6 @@ class UFID(PRIV):
 
     See `specification <http://id3.org/id3v2.3.0#Unique_file_identifier>`_
     """
-
-
-DECLARED_FRAMES = {
-    "AENC": "Audio encryption",
-    "APIC": "Attached picture",
-    "COMM": "Comments",
-    "COMR": "Commercial frame",
-    "ENCR": "Encryption method registration",
-    "EQUA": "Equalization",
-    "ETCO": "Event timing codes",
-    "GEOB": "General encapsulated object",
-    "GRID": "Group identification registration",
-    "IPLS": "Involved people list",
-    "LINK": "Linked information",
-    "MCDI": "Music CD identifier",
-    "MLLT": "MPEG location lookup table",
-    "OWNE": "Ownership frame",
-    "PRIV": "Private frame",
-    "PCNT": "Play counter",
-    "POPM": "Popularimeter",
-    "POSS": "Position synchronisation frame",
-    "RBUF": "Recommended buffer size",
-    "RVAD": "Relative volume adjustment",
-    "RVRB": "Reverb",
-    "SYLT": "Synchronized lyric/text",
-    "SYTC": "Synchronized tempo codes",
-    "TALB": "Album/Movie/Show title",
-    "TBPM": "BPM (beats per minute)",
-    "TCOM": "Composer",
-    "TCON": "Content type",
-    "TCOP": "Copyright message",
-    "TDAT": "Date",
-    "TDLY": "Playlist delay",
-    "TENC": "Encoded by",
-    "TEXT": "Lyricist/Text writer",
-    "TFLT": "File type",
-    "TIME": "Time",
-    "TIT1": "Content group description",
-    "TIT2": "Title/songname/content description",
-    "TIT3": "Subtitle/Description refinement",
-    "TKEY": "Initial key",
-    "TLAN": "Language(s)",
-    "TLEN": "Length",
-    "TMED": "Media type",
-    "TOAL": "Original album/movie/show title",
-    "TOFN": "Original filename",
-    "TOLY": "Original lyricist(s)/text writer(s)",
-    "TOPE": "Original artist(s)/performer(s)",
-    "TORY": "Original release year",
-    "TOWN": "File owner/licensee",
-    "TPE1": "Lead performer(s)/Soloist(s)",
-    "TPE2": "Band/orchestra/accompaniment",
-    "TPE3": "Conductor/performer refinement",
-    "TPE4": "Interpreted, remixed, or otherwise modified by",
-    "TPOS": "Part of a set",
-    "TPUB": "Publisher",
-    "TRCK": "Track number/Position in set",
-    "TRDA": "Recording dates",
-    "TRSN": "Internet radio station name",
-    "TRSO": "Internet radio station owner",
-    "TSIZ": "Size",
-    "TSRC": "ISRC (international standard recording code)",
-    "TSSE": "Software/Hardware and settings used for encoding",
-    "TYER": "Year",
-    "TXXX": "User defined text information frame",
-    "UFID": "Unique file identifier",
-    "USER": "Terms of use",
-    # sic! (typo in spec: Unsychronized must be "Unsynchronized")
-    "USLT": "Unsychronized lyric/text transcription",
-    "WCOM": "Commercial information",
-    "WCOP": "Copyright/Legal information",
-    "WOAF": "Official audio file webpage",
-    "WOAR": "Official artist/performer webpage",
-    "WOAS": "Official audio source webpage",
-    "WORS": "Official internet radio station homepage",
-    "WPAY": "Payment",
-    "WPUB": "Publishers official webpage",
-    "WXXX": "User defined URL link frame",
-    "XSOT": "Title sort order",
-    "XSOP": "Performer sort order",
-    "XSOA": "Album sort order",
-}
 
 
 # Is this good practice? I don't know...
