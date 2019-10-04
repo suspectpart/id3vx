@@ -8,7 +8,7 @@ from enum import IntFlag
 from io import BytesIO
 
 from id3vx.binary import unsynchsafe
-from id3vx.fields import TextField, BinaryField, FixedLengthTextField
+from id3vx.fields import TextField, BinaryField, FixedLengthTextField, Fields
 from id3vx.fields import CodecField, EncodedTextField, IntegerField
 from .codec import Codec
 from .text import shorten
@@ -114,6 +114,9 @@ class Frame:
     Refer to `ID3v2.3 frame specification
     <http://id3.org/id3v2.3.0#ID3v2_frame_overview>`_
     """
+    FIELDS = Fields(
+
+    )
 
     @classmethod
     def from_file(cls, mp3, unsynchronize_size=False):
@@ -124,8 +127,9 @@ class Frame:
             return None
 
         fields = mp3.read(header.frame_size())
+        frame = FRAMES.get(header.id(), Frame)
 
-        return FRAMES.get(header.id(), Frame)(header, fields)
+        return frame(header, fields)
 
     def __init__(self, header, fields):
         self._header = header
@@ -181,6 +185,13 @@ class APIC(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Attached_picture>`_
     """
+    FIELDS = Fields(
+        CodecField(),
+        TextField(),
+        IntegerField(1),
+        EncodedTextField(),
+        BinaryField(),
+    )
 
     class PictureType(enum.Enum):
         OTHER = 0x00  # "Other"
@@ -247,6 +258,7 @@ class MCDI(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Music_CD_identifier>`_
     """
+
     def toc(self):
         return self.fields()
 
@@ -264,6 +276,11 @@ class PRIV(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Private_frame>`_
     """
+    FIELDS = Fields(
+        TextField(),
+        BinaryField()
+    )
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -293,6 +310,14 @@ class GEOB(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#General_encapsulated_object>`_
     """
+    FIELDS = Fields(
+        CodecField(),
+        TextField(),
+        EncodedTextField(),
+        EncodedTextField(),
+        BinaryField()
+    )
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -331,6 +356,10 @@ class TextFrame(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Text_information_frames>`_
     """
+    FIELDS = Fields(
+        CodecField(),
+        EncodedTextField(),
+    )
 
     def __init__(self, header, fields):
         super().__init__(header, fields)
@@ -373,6 +402,11 @@ class TXXX(Frame):
     See `specification
     <http://id3.org/id3v2.3.0#User_defined_text_information_frame>`_
     """
+    FIELDS = Fields(
+        CodecField(),
+        EncodedTextField(),
+        EncodedTextField(),
+    )
 
     def __init__(self, header, fields):
         super().__init__(header, fields)
@@ -401,6 +435,9 @@ class URLLinkFrame(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#URL_link_frames>`_
     """
+    FIELDS = Fields(
+        TextField(),
+    )
 
     def url(self):
         return Codec.default().decode(self.fields())
@@ -452,6 +489,11 @@ class WXXX(Frame):
     See `specification
     <http://id3.org/id3v2.3.0#User_defined_URL_link_frame>`_
     """
+    FIELDS = Fields(
+        CodecField(),
+        EncodedTextField(),
+        TextField(),
+    )
 
     def __init__(self, header, fields):
         super().__init__(header, fields)
@@ -472,6 +514,12 @@ class WXXX(Frame):
 
 
 class COMM(Frame):
+    FIELDS = Fields(
+        CodecField(),
+        FixedLengthTextField(3),
+        EncodedTextField(),
+        EncodedTextField(),
+    )
     """Comment Frame (COMM)
 
     <Header for 'Comment', ID: "COMM">
@@ -482,6 +530,7 @@ class COMM(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Comments>`_
     """
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -514,6 +563,10 @@ class PCNT(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Play_counter>`_
     """
+    FIELDS = Fields(
+        IntegerField()
+    )
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -537,6 +590,13 @@ class USLT(Frame):
     Content descriptor  <text string according to encoding> $00 (00)
     Lyrics/text         <full text string according to encoding>
     """
+    FIELDS = Fields(
+        CodecField(),
+        FixedLengthTextField(3),
+        EncodedTextField(),
+        EncodedTextField(),
+    )
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -565,6 +625,14 @@ class CHAP(Frame):
 
     See `specification <http://id3.org/id3v2-chapters-1.0>`_
     """
+    FIELDS = Fields(
+        TextField(),
+        IntegerField(),
+        IntegerField(),
+        IntegerField(),
+        IntegerField(),
+        BinaryField(),
+    )
 
     Timings = namedtuple("Timings", "start, end, start_offset, end_offset")
 
@@ -630,6 +698,12 @@ class USER(Frame):
     Language        $xx xx xx
     The actual text <text string according to encoding>
     """
+    FIELDS = Fields(
+        CodecField(),
+        FixedLengthTextField(3),
+        EncodedTextField(),
+    )
+
     def __init__(self, header, fields):
         super().__init__(header, fields)
 

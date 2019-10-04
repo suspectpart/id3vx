@@ -1,6 +1,23 @@
 from id3vx.codec import Codec
 
 
+class Fields:
+    def __init__(self, *args):
+        self._fields = args
+
+    def read(self, stream):
+        codec = Codec.default()
+
+        for field in self._fields:
+            if type(field) == CodecField:
+                codec = field.read(stream)
+                print(codec)
+            elif type(field) == EncodedTextField:
+                print(field.read(stream, codec))
+            else:
+                print(field.read(stream))
+
+
 class IntegerField:
     def __init__(self, length=4):
         self._length = length
@@ -17,7 +34,7 @@ class CodecField:
 
 class BinaryField(object):
     # noinspection PyMethodMayBeStatic
-    def read(self, stream) -> bytes:
+    def read(self, stream,) -> bytes:
         return stream.read()
 
 
