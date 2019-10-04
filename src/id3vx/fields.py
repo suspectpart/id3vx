@@ -2,42 +2,28 @@ from id3vx.codec import Codec
 
 
 class IntegerField:
-    def __init__(self, value):
-        self._value = value
+    def __init__(self, length=4):
+        self._length = length
 
-    def __int__(self):
-        return self._value
-
-    @classmethod
-    def read(cls, stream, length=4):
-        return IntegerField(int.from_bytes(stream.read(length), "big"))
+    def read(self, stream) -> int:
+        return int.from_bytes(stream.read(self._length), "big")
 
 
 class CodecField:
-    @classmethod
-    def read(cls, stream):
+    # noinspection PyMethodMayBeStatic
+    def read(self, stream) -> Codec:
         return Codec.get(stream.read(1)[0])
 
 
 class BinaryField(object):
-    def __init__(self, byte_string):
-        self._bytes = byte_string
-
-    @classmethod
-    def read(cls, stream):
-        return cls(stream.read())
-
-    def __bytes__(self):
-        return self._bytes
+    # noinspection PyMethodMayBeStatic
+    def read(self, stream) -> bytes:
+        return stream.read()
 
 
 class TextField:
-    def __init__(self, text):
-        self._text = text
-
-    @classmethod
-    def read(cls, stream, codec=Codec.default()):
-        text_bytes = bytearray()
+    def read(self, stream, codec=Codec.default()) -> str:
+        text_bytes = b''
 
         char = codec.read(stream)
         while char and (char != codec.SEPARATOR):
@@ -46,25 +32,17 @@ class TextField:
 
         return codec.decode(text_bytes)
 
-    def __str__(self):
-        return self._text
-
 
 class EncodedTextField(TextField):
-    @classmethod
-    def read(cls, stream, codec=Codec.default()):
+    def read(self, stream, codec=Codec.default()) -> str:
         return super().read(stream, codec)
 
 
 class FixedLengthTextField:
-    def __init__(self, text):
-        self._text = text
+    def __init__(self, length):
+        self._length = length
 
-    @classmethod
-    def read(cls, stream, length):
-        byte_string = Codec.default().read(stream, length)
+    def read(self, stream) -> str:
+        byte_string = Codec.default().read(stream, self._length)
 
-        return cls(Codec.default().decode(byte_string))
-
-    def __str__(self):
-        return self._text
+        return Codec.default().decode(byte_string)
