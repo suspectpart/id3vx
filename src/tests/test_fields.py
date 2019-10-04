@@ -13,7 +13,7 @@ class FixedLengthTextFieldTests(unittest.TestCase):
         length = 5
 
         # System under test
-        field = FixedLengthTextField(length)
+        field = FixedLengthTextField("language", length)
 
         # Act
         text = field.read(BytesIO(byte_string))
@@ -26,7 +26,7 @@ class FixedLengthTextFieldTests(unittest.TestCase):
         byte_string = b'hallowelt'
 
         # System Under Test
-        field = FixedLengthTextField(0)
+        field = FixedLengthTextField("language", 0)
 
         # Act
         text = field.read(BytesIO(byte_string))
@@ -96,7 +96,7 @@ class BinaryFieldTests(unittest.TestCase):
         byte_string = b'abcde\x00\x0f\x00\x0f\x0a\xcf\xff'
 
         # System under test
-        field = BinaryField()
+        field = BinaryField("text")
 
         # Act
         field_bytes = field.read(BytesIO(byte_string))
@@ -116,7 +116,7 @@ class TextFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string + remainder)
 
         # System under test
-        field = TextField()
+        field = TextField("text")
 
         # Act
         text = field.read(stream)
@@ -132,7 +132,7 @@ class TextFieldTests(unittest.TestCase):
         expected_text = byte_string.decode("latin1")
 
         # System under test - Act
-        field = TextField().read(BytesIO(byte_string))
+        field = TextField("text").read(BytesIO(byte_string))
 
         # Act
         text = str(field)
@@ -146,7 +146,7 @@ class TextFieldTests(unittest.TestCase):
         empty_bytes = b''
 
         # System under test - Act
-        field = TextField().read(BytesIO(empty_bytes))
+        field = TextField("text").read(BytesIO(empty_bytes))
 
         # Act
         text = str(field)
@@ -166,7 +166,7 @@ class EncodedTextFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string + remainder)
 
         # System under test - Act
-        field = EncodedTextField().read(stream, UTF16Codec())
+        field = EncodedTextField("text").read(stream, UTF16Codec())
 
         # Act
         text = str(field)
@@ -183,7 +183,7 @@ class EncodedTextFieldTests(unittest.TestCase):
         expected_text = "abcde"
 
         # System under test - Act
-        field = EncodedTextField().read(BytesIO(byte_string), codec)
+        field = EncodedTextField("text").read(BytesIO(byte_string), codec)
 
         # Act
         text = str(field)
@@ -197,7 +197,7 @@ class EncodedTextFieldTests(unittest.TestCase):
         empty_bytes = b''
 
         # System under test
-        field = EncodedTextField()
+        field = EncodedTextField("text")
 
         # Act
         text = field.read(BytesIO(empty_bytes), UTF16Codec())
@@ -217,7 +217,7 @@ class IntegerFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string + remainder)
 
         # System under test
-        field = IntegerField()
+        field = IntegerField("field")
 
         # Act
         value = field.read(stream)
@@ -235,7 +235,7 @@ class IntegerFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string)
 
         # System under test
-        field = IntegerField(3)
+        field = IntegerField("field", 3)
 
         # Act
         value = field.read(stream)
@@ -252,7 +252,7 @@ class IntegerFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string)
 
         # System under test
-        field = IntegerField(1).read(stream)
+        field = IntegerField("field", 1).read(stream)
 
         # Act
         value = int(field)
@@ -267,7 +267,7 @@ class IntegerFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string)
 
         # System under test - Act
-        field = IntegerField().read(stream)
+        field = IntegerField("field").read(stream)
 
         # Act
         value = int(field)

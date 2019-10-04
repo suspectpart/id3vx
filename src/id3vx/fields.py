@@ -7,38 +7,59 @@ class Fields:
 
     def read(self, stream):
         codec = Codec.default()
+        results = {}
 
         for field in self._fields:
             if type(field) == CodecField:
                 codec = field.read(stream)
-                print(codec)
+                results[field.name()] = codec
             elif type(field) == EncodedTextField:
-                print(field.read(stream, codec))
+                results[field.name()] = field.read(stream, codec)
             else:
-                print(field.read(stream))
+                results[field.name()] = field.read(stream)
+
+        print(results)
 
 
-class IntegerField:
-    def __init__(self, length=4):
+class Field:
+    def __init__(self, name):
+        self._name = name
+
+    def name(self):
+        return self._name
+
+
+class IntegerField(Field):
+    def __init__(self, name, length=4):
+        super().__init__(name)
+
         self._length = length
 
     def read(self, stream) -> int:
         return int.from_bytes(stream.read(self._length), "big")
 
 
-class CodecField:
+class CodecField(Field):
+    def __init__(self):
+        super().__init__("codec")
+
     # noinspection PyMethodMayBeStatic
     def read(self, stream) -> Codec:
         return Codec.get(stream.read(1)[0])
 
 
-class BinaryField(object):
+class BinaryField(Field):
+    def __init__(self, name, length=-1):
+        super().__init__(name)
+
+        self._length = length
+
     # noinspection PyMethodMayBeStatic
-    def read(self, stream,) -> bytes:
-        return stream.read()
+    def read(self, stream) -> bytes:
+        return stream.read(self._length)
 
 
-class TextField:
+class TextField(Field):
     def read(self, stream, codec=Codec.default()) -> str:
         text_bytes = b''
 
@@ -55,8 +76,10 @@ class EncodedTextField(TextField):
         return super().read(stream, codec)
 
 
-class FixedLengthTextField:
-    def __init__(self, length):
+class FixedLengthTextField(Field):
+    def __init__(self, name, length):
+        super().__init__(name)
+
         self._length = length
 
     def read(self, stream) -> str:
