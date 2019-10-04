@@ -1,4 +1,3 @@
-from datetime import timedelta
 import unittest
 from io import BytesIO
 
@@ -181,7 +180,7 @@ class FrameTests(unittest.TestCase):
         self.assertEqual(frame.header, header)
         self.assertEqual(frame.id(), "PRIV")
         self.assertEqual(frame.fields, fields)
-        self.assertEqual(str(frame), str(fields))
+        self.assertIn(str(fields), repr(frame))
         self.assertEqual(len(frame), frame_size + len(header))
         self.assertEqual(frame.name(), "Private frame")
 

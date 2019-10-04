@@ -1,4 +1,3 @@
-import dataclasses
 import datetime
 import enum
 import inspect
@@ -14,6 +13,8 @@ from id3vx.fields import TextField, BinaryField, FixedLengthTextField, Fields
 from id3vx.fields import CodecField, EncodedTextField, IntegerField
 from .codec import Codec
 from .text import shorten
+
+# FIXME: Shorten fields!
 
 
 class Frames(list):
@@ -110,7 +111,7 @@ class FrameHeader:
         return FrameHeader.SIZE
 
 
-@dataclass
+@dataclass(repr=False)
 class Frame:
     """An ID3v2.3 frame.
 
@@ -162,17 +163,17 @@ class Frame:
         """The overall size of the frame in bytes, including header."""
         return len(self.header) + self.header.frame_size()
 
-    def __str__(self):
-        return str(self.fields)
-
     def __repr__(self):
-        return f'{type(self).__name__}({repr(self.header)})'
+        annotations = self.__annotations__
+        attrs = "".join(f"[{a}={shorten(str(self.__dict__[a]))}]" for a in annotations)
+
+        return f'{type(self).__name__}({repr(self.header)}) {attrs}'
 
     def __bytes__(self):
         return bytes(self.header) + bytes(self.fields)
 
 
-@dataclass
+@dataclass(repr=False)
 class APIC(Frame):
     """Attached picture frame (APIC)
 
@@ -222,15 +223,8 @@ class APIC(Frame):
         BAND_LOGO_TYPE = 0x13  # "Band/artist logotype"
         PUBLISHER_LOGO_TYPE = 0x14  # "Publisher/Studio logotype"
 
-    def __repr__(self):
-        return f"{super().__repr__()}" \
-               f"[mime-type={self.mime_type}]" \
-               f"[description={self.description}]" \
-               f"[picture-type={self.picture_type}]" \
-               f"[data={self.data}]"
 
-
-@dataclass
+@dataclass(repr=False)
 class MCDI(Frame):
     """A Music CD Identifier Frame (MCDI)
 
@@ -245,16 +239,8 @@ class MCDI(Frame):
         BinaryField("toc"),
     )
 
-    def __repr__(self):
-        return f"{super().__repr__()}" \
-               f"[toc={self.toc}]"
 
-
-class NCON(Frame):
-    """A mysterious binary frame added by MusicMatch (NCON)"""
-
-
-@dataclass
+@dataclass(repr=False)
 class PRIV(Frame):
     """Private frame (PRIV)
 
@@ -272,12 +258,8 @@ class PRIV(Frame):
         BinaryField("data")
     )
 
-    def __repr__(self):
-        return f"{super().__repr__()}" \
-               f'[owner {self.owner}][data={self.data}]'
 
-
-@dataclass
+@dataclass(repr=False)
 class GEOB(Frame):
     codec: Codec
     mime_type: str
@@ -304,25 +286,8 @@ class GEOB(Frame):
         BinaryField("obj")
     )
 
-    def __str__(self):
-        return f'[mime-type={self.mime_type}]' \
-               f'[filename={self.filename}]' \
-               f'[description={self.description}]' \
-               f'[object={bytes(self.obj)}]'
 
-
-class UFID(PRIV):
-    """Unique file identifier frame (UFID)
-
-    <Header for 'Unique file identifier', ID: "UFID">
-    Owner identifier    <text string> $00
-    Identifier          <up to 64 bytes binary data>
-
-    See `specification <http://id3.org/id3v2.3.0#Unique_file_identifier>`_
-    """
-
-
-@dataclass
+@dataclass(repr=False)
 class TextFrame(Frame):
     """A text information frame (T000 - TZZZ)
 
@@ -341,27 +306,8 @@ class TextFrame(Frame):
         EncodedTextField("text"),
     )
 
-    def __repr__(self):
-        return f"{super().__repr__()}[text={self.text}]"
 
-
-class PicardFrame(TextFrame):
-    """Mysterious frame introduced by MusicBrainz Picard (XSO*)"""
-
-
-class XSOP(PicardFrame):
-    """MusicBrainz Performing Artist sort order"""
-
-
-class XSOA(PicardFrame):
-    """MusicBrainz Album sort order"""
-
-
-class XSOT(PicardFrame):
-    """MusicBrainz Track sort oder"""
-
-
-@dataclass
+@dataclass(repr=False)
 class TXXX(Frame):
     """User defined text information frame (TXXX)
 
@@ -383,12 +329,8 @@ class TXXX(Frame):
         EncodedTextField("text"),
     )
 
-    def __repr__(self):
-        return f'{super().__repr__()}' \
-               f'[description={self.description}][text={self.text}]'
 
-
-@dataclass
+@dataclass(repr=False)
 class URLLinkFrame(Frame):
     """Url link Frame (W000 - WZZZ)
 
@@ -404,43 +346,8 @@ class URLLinkFrame(Frame):
         TextField("url"),
     )
 
-    def __repr__(self):
-        return f"{super().__repr__()}[url={self.url}]"
 
-
-class WCOM(URLLinkFrame):
-    """Commercial information"""
-
-
-class WCOP(URLLinkFrame):
-    """Copyright/Legal information"""
-
-
-class WOAF(URLLinkFrame):
-    """Official audio file webpage"""
-
-
-class WOAR(URLLinkFrame):
-    """Official artist/performer webpage"""
-
-
-class WOAS(URLLinkFrame):
-    """Official audio source webpage"""
-
-
-class WORS(URLLinkFrame):
-    """Official internet radio station homepage"""
-
-
-class WPAY(URLLinkFrame):
-    """Payment"""
-
-
-class WPUB(URLLinkFrame):
-    """Publishers official webpage"""
-
-
-@dataclass
+@dataclass(repr=False)
 class WXXX(Frame):
     """A User Defined URL Frame (WXXX)
 
@@ -462,12 +369,8 @@ class WXXX(Frame):
         TextField("url"),
     )
 
-    def __repr__(self):
-        return f'{super().__repr__()}' \
-               f'[description {self.description}][url={self.url}]'
 
-
-@dataclass
+@dataclass(repr=False)
 class COMM(Frame):
     """Comment Frame (COMM)
 
@@ -491,14 +394,8 @@ class COMM(Frame):
         EncodedTextField("comment"),
     )
 
-    def __repr__(self):
-        return f'{super().__repr__()}' \
-               f'[language={self.language}]' \
-               f'[description={self.description}]' \
-               f'[comment={self.comment}]'
 
-
-@dataclass
+@dataclass(repr=False)
 class PCNT(Frame):
     """Play counter (PCNT)
 
@@ -514,11 +411,8 @@ class PCNT(Frame):
         IntegerField("counter")
     )
 
-    def __repr__(self):
-        return f'{super().__repr__()}[counter={self.counter}]'
 
-
-@dataclass
+@dataclass(repr=False)
 class USLT(Frame):
     """Unsynchronised lyrics (USLT)
 
@@ -540,14 +434,8 @@ class USLT(Frame):
         EncodedTextField("_lyrics"),
     )
 
-    def __repr__(self):
-        return f'{super().__repr__()}' \
-               f'[language={self.language}]' \
-               f'[description={self.description}]' \
-               f'[lyrics={self.lyrics}]'
 
-
-@dataclass
+@dataclass(repr=False)
 class CHAP(Frame):
     """A Chapter frame (CHAP)
 
@@ -610,7 +498,7 @@ class CHAP(Frame):
         return header + element_id + timings + self._sub_frames
 
 
-@dataclass
+@dataclass(repr=False)
 class USER(Frame):
     """Terms of use (USER)
 
@@ -628,92 +516,6 @@ class USER(Frame):
         FixedLengthTextField("language", 3),
         EncodedTextField("text"),
     )
-
-    def __str__(self):
-        return f'{super().__repr__()}' \
-               f'[language={self.language}][text={self.text}]'
-
-
-DECLARED_FRAMES = {
-    "AENC": "Audio encryption",
-    "APIC": "Attached picture",
-    "COMM": "Comments",
-    "COMR": "Commercial frame",
-    "ENCR": "Encryption method registration",
-    "EQUA": "Equalization",
-    "ETCO": "Event timing codes",
-    "GEOB": "General encapsulated object",
-    "GRID": "Group identification registration",
-    "IPLS": "Involved people list",
-    "LINK": "Linked information",
-    "MCDI": "Music CD identifier",
-    "MLLT": "MPEG location lookup table",
-    "OWNE": "Ownership frame",
-    "PRIV": "Private frame",
-    "PCNT": "Play counter",
-    "POPM": "Popularimeter",
-    "POSS": "Position synchronisation frame",
-    "RBUF": "Recommended buffer size",
-    "RVAD": "Relative volume adjustment",
-    "RVRB": "Reverb",
-    "SYLT": "Synchronized lyric/text",
-    "SYTC": "Synchronized tempo codes",
-    "TALB": "Album/Movie/Show title",
-    "TBPM": "BPM (beats per minute)",
-    "TCOM": "Composer",
-    "TCON": "Content type",
-    "TCOP": "Copyright message",
-    "TDAT": "Date",
-    "TDLY": "Playlist delay",
-    "TENC": "Encoded by",
-    "TEXT": "Lyricist/Text writer",
-    "TFLT": "File type",
-    "TIME": "Time",
-    "TIT1": "Content group description",
-    "TIT2": "Title/songname/content description",
-    "TIT3": "Subtitle/Description refinement",
-    "TKEY": "Initial key",
-    "TLAN": "Language(s)",
-    "TLEN": "Length",
-    "TMED": "Media type",
-    "TOAL": "Original album/movie/show title",
-    "TOFN": "Original filename",
-    "TOLY": "Original lyricist(s)/text writer(s)",
-    "TOPE": "Original artist(s)/performer(s)",
-    "TORY": "Original release year",
-    "TOWN": "File owner/licensee",
-    "TPE1": "Lead performer(s)/Soloist(s)",
-    "TPE2": "Band/orchestra/accompaniment",
-    "TPE3": "Conductor/performer refinement",
-    "TPE4": "Interpreted, remixed, or otherwise modified by",
-    "TPOS": "Part of a set",
-    "TPUB": "Publisher",
-    "TRCK": "Track number/Position in set",
-    "TRDA": "Recording dates",
-    "TRSN": "Internet radio station name",
-    "TRSO": "Internet radio station owner",
-    "TSIZ": "Size",
-    "TSRC": "ISRC (international standard recording code)",
-    "TSSE": "Software/Hardware and settings used for encoding",
-    "TYER": "Year",
-    "TXXX": "User defined text information frame",
-    "UFID": "Unique file identifier",
-    "USER": "Terms of use",
-    # sic! (typo in spec: Unsychronized must be "Unsynchronized")
-    "USLT": "Unsychronized lyric/text transcription",
-    "WCOM": "Commercial information",
-    "WCOP": "Copyright/Legal information",
-    "WOAF": "Official audio file webpage",
-    "WOAR": "Official artist/performer webpage",
-    "WOAS": "Official audio source webpage",
-    "WORS": "Official internet radio station homepage",
-    "WPAY": "Payment",
-    "WPUB": "Publishers official webpage",
-    "WXXX": "User defined URL link frame",
-    "XSOT": "Title sort order",
-    "XSOP": "Performer sort order",
-    "XSOA": "Album sort order",
-}
 
 
 class TALB(TextFrame):
@@ -882,6 +684,151 @@ class TSSE(TextFrame):
 
 class TYER(TextFrame):
     """Year (4 characters)"""
+
+
+class WCOM(URLLinkFrame):
+    """Commercial information"""
+
+
+class WCOP(URLLinkFrame):
+    """Copyright/Legal information"""
+
+
+class WOAF(URLLinkFrame):
+    """Official audio file webpage"""
+
+
+class WOAR(URLLinkFrame):
+    """Official artist/performer webpage"""
+
+
+class WOAS(URLLinkFrame):
+    """Official audio source webpage"""
+
+
+class WORS(URLLinkFrame):
+    """Official internet radio station homepage"""
+
+
+class WPAY(URLLinkFrame):
+    """Payment"""
+
+
+class WPUB(URLLinkFrame):
+    """Publishers official webpage"""
+
+
+class NCON(Frame):
+    """A mysterious binary frame added by MusicMatch (NCON)"""
+
+
+class PicardFrame(TextFrame):
+    """Mysterious frame introduced by MusicBrainz Picard (XSO*)"""
+
+
+class XSOP(PicardFrame):
+    """MusicBrainz Performing Artist sort order"""
+
+
+class XSOA(PicardFrame):
+    """MusicBrainz Album sort order"""
+
+
+class XSOT(PicardFrame):
+    """MusicBrainz Track sort oder"""
+
+
+class UFID(PRIV):
+    """Unique file identifier frame (UFID)
+
+    <Header for 'Unique file identifier', ID: "UFID">
+    Owner identifier    <text string> $00
+    Identifier          <up to 64 bytes binary data>
+
+    See `specification <http://id3.org/id3v2.3.0#Unique_file_identifier>`_
+    """
+
+
+DECLARED_FRAMES = {
+    "AENC": "Audio encryption",
+    "APIC": "Attached picture",
+    "COMM": "Comments",
+    "COMR": "Commercial frame",
+    "ENCR": "Encryption method registration",
+    "EQUA": "Equalization",
+    "ETCO": "Event timing codes",
+    "GEOB": "General encapsulated object",
+    "GRID": "Group identification registration",
+    "IPLS": "Involved people list",
+    "LINK": "Linked information",
+    "MCDI": "Music CD identifier",
+    "MLLT": "MPEG location lookup table",
+    "OWNE": "Ownership frame",
+    "PRIV": "Private frame",
+    "PCNT": "Play counter",
+    "POPM": "Popularimeter",
+    "POSS": "Position synchronisation frame",
+    "RBUF": "Recommended buffer size",
+    "RVAD": "Relative volume adjustment",
+    "RVRB": "Reverb",
+    "SYLT": "Synchronized lyric/text",
+    "SYTC": "Synchronized tempo codes",
+    "TALB": "Album/Movie/Show title",
+    "TBPM": "BPM (beats per minute)",
+    "TCOM": "Composer",
+    "TCON": "Content type",
+    "TCOP": "Copyright message",
+    "TDAT": "Date",
+    "TDLY": "Playlist delay",
+    "TENC": "Encoded by",
+    "TEXT": "Lyricist/Text writer",
+    "TFLT": "File type",
+    "TIME": "Time",
+    "TIT1": "Content group description",
+    "TIT2": "Title/songname/content description",
+    "TIT3": "Subtitle/Description refinement",
+    "TKEY": "Initial key",
+    "TLAN": "Language(s)",
+    "TLEN": "Length",
+    "TMED": "Media type",
+    "TOAL": "Original album/movie/show title",
+    "TOFN": "Original filename",
+    "TOLY": "Original lyricist(s)/text writer(s)",
+    "TOPE": "Original artist(s)/performer(s)",
+    "TORY": "Original release year",
+    "TOWN": "File owner/licensee",
+    "TPE1": "Lead performer(s)/Soloist(s)",
+    "TPE2": "Band/orchestra/accompaniment",
+    "TPE3": "Conductor/performer refinement",
+    "TPE4": "Interpreted, remixed, or otherwise modified by",
+    "TPOS": "Part of a set",
+    "TPUB": "Publisher",
+    "TRCK": "Track number/Position in set",
+    "TRDA": "Recording dates",
+    "TRSN": "Internet radio station name",
+    "TRSO": "Internet radio station owner",
+    "TSIZ": "Size",
+    "TSRC": "ISRC (international standard recording code)",
+    "TSSE": "Software/Hardware and settings used for encoding",
+    "TYER": "Year",
+    "TXXX": "User defined text information frame",
+    "UFID": "Unique file identifier",
+    "USER": "Terms of use",
+    # sic! (typo in spec: Unsychronized must be "Unsynchronized")
+    "USLT": "Unsychronized lyric/text transcription",
+    "WCOM": "Commercial information",
+    "WCOP": "Copyright/Legal information",
+    "WOAF": "Official audio file webpage",
+    "WOAR": "Official artist/performer webpage",
+    "WOAS": "Official audio source webpage",
+    "WORS": "Official internet radio station homepage",
+    "WPAY": "Payment",
+    "WPUB": "Publishers official webpage",
+    "WXXX": "User defined URL link frame",
+    "XSOT": "Title sort order",
+    "XSOP": "Performer sort order",
+    "XSOA": "Album sort order",
+}
 
 
 # Is this good practice? I don't know...
