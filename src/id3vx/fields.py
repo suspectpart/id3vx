@@ -5,20 +5,18 @@ class Fields:
     def __init__(self, *args):
         self._fields = args
 
-    def read(self, stream):
+    def read(self, stream, frame={}):
         codec = Codec.default()
-        results = {}
 
         for field in self._fields:
             if type(field) == CodecField:
                 codec = field.read(stream)
-                results[field.name()] = codec
+                frame.__dict__["_" + field.name()] = codec
             elif type(field) == EncodedTextField:
-                results[field.name()] = field.read(stream, codec)
+                frame.__dict__["_" + field.name()] = field.read(stream, codec)
             else:
-                results[field.name()] = field.read(stream)
+                frame.__dict__["_" + field.name()] = field.read(stream)
 
-        print(results)
 
 
 class Field:

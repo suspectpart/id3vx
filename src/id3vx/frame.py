@@ -127,9 +127,9 @@ class Frame:
             return None
 
         fields = mp3.read(header.frame_size())
-        frame = FRAMES.get(header.id(), Frame)
+        frame = FRAMES.get(header.id(), Frame)(header, fields)
 
-        return frame(header, fields)
+        return frame
 
     def __init__(self, header, fields):
         self._header = header
@@ -171,6 +171,9 @@ class Frame:
 
     def __bytes__(self):
         return bytes(self.header()) + bytes(self.fields())
+
+    def __setattr__(self, key, value):
+        self.__dict__[key] = value
 
 
 class APIC(Frame):
