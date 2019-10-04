@@ -2,8 +2,8 @@ from datetime import timedelta
 import unittest
 from io import BytesIO
 
-from id3vx.frame import FrameHeader, Frame, TextFrame, PRIV, Frames, APIC, \
-    CHAP, MCDI, NCON, COMM, TALB
+from id3vx.frame import FrameHeader, Frame, TextFrame, Frames
+from id3vx.frame import CHAP, MCDI, NCON, COMM, TALB, APIC, PRIV
 from id3vx.tag import TagHeader
 
 
@@ -167,17 +167,6 @@ class FrameHeaderTests(unittest.TestCase):
 
 
 class FrameTests(unittest.TestCase):
-    def test_represents_every_frame_id(self):
-        """Represents every Frame ID"""
-        # Arrange - Act - Assert
-        self.assertTrue(Frame.represents(b'TXXX'))
-        self.assertTrue(Frame.represents(b'TALB'))
-        self.assertTrue(Frame.represents(b'WXXX'))
-        self.assertTrue(Frame.represents(b'WOAR'))
-        self.assertTrue(Frame.represents(b'COMM'))
-        self.assertTrue(Frame.represents(b'PRIV'))
-        self.assertTrue(Frame.represents(b'????'))
-
     def test_exposes_fields(self):
         """Exposes relevant fields"""
         # Arrange
@@ -371,7 +360,6 @@ class MCDITests(unittest.TestCase):
         # Act - Assert
         self.assertEqual(type(frame), MCDI)
         self.assertEqual(fields, frame.toc())
-        self.assertTrue(frame.represents(b'MCDI'))
 
 
 class NCONTests(unittest.TestCase):
@@ -386,7 +374,6 @@ class NCONTests(unittest.TestCase):
         # Act - Assert
         self.assertEqual(type(frame), NCON)
         self.assertEqual(fields, frame.fields())
-        self.assertTrue(frame.represents(b'NCON'))
 
 
 class COMMTests(unittest.TestCase):

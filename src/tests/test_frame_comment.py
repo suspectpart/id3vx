@@ -49,15 +49,3 @@ class CommentFrameTests(unittest.TestCase):
         self.assertEqual(frame.comment(), "")
         self.assertEqual(frame.description(), "")
         self.assertEqual(frame.language(), language.decode("latin1"))
-
-    def test_represents_comment_frames(self):
-        """Represents Frame ID 'COMM'"""
-        # System under test
-        frame = COMM
-
-        # Act - Assert
-        self.assertTrue(frame.represents(b'COMM'))
-        self.assertFalse(frame.represents(b'TALB'))
-        self.assertFalse(frame.represents(b'TIT2'))
-        self.assertFalse(frame.represents(b'PRIV'))
-        self.assertFalse(frame.represents(b'WXXX'))

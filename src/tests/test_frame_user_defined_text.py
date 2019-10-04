@@ -62,15 +62,3 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         self.assertEqual(frame.text(), text.decode("utf-8"))
         self.assertEqual(frame.description(), "")
         self.assertIn(text.decode("utf-8"), str(frame))
-
-    def test_represents_txxx_text_frame(self):
-        """Represents Frame ID 'TXXX'"""
-        # System Under Test
-        frame = TXXX
-
-        # Act - Assert
-        self.assertTrue(frame.represents(b'TXXX'))
-        self.assertFalse(frame.represents(b'TALB'))
-        self.assertFalse(frame.represents(b'TIT2'))
-        self.assertFalse(frame.represents(b'PRIV'))
-        self.assertFalse(frame.represents(b'COMM'))

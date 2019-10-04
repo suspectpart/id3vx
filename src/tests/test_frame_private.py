@@ -21,11 +21,3 @@ class PrivateFrameTests(unittest.TestCase):
         self.assertEqual(frame.owner(), owner)
         self.assertIn(str(random_binary), str(frame))
         self.assertIn(owner, str(frame))
-
-    def test_represents_private_frames(self):
-        """Represents only PRIV ids"""
-        # Arrange - Act - Assert
-        self.assertTrue(PRIV.represents(b'PRIV'))
-        self.assertFalse(PRIV.represents(b'COMM'))
-        self.assertFalse(PRIV.represents(b'TXXX'))
-        self.assertFalse(PRIV.represents(b'WXXX'))

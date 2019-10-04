@@ -130,10 +130,6 @@ class Frame:
 
         return frame(header, fields)
 
-    @staticmethod
-    def represents(identifier):
-        return True
-
     def __init__(self, header, fields):
         self._header = header
         self._fields = fields
@@ -212,10 +208,6 @@ class APIC(Frame):
         BAND_LOGO_TYPE = 0x13  # "Band/artist logotype"
         PUBLISHER_LOGO_TYPE = 0x14  # "Publisher/Studio logotype"
 
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'APIC'
-
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -258,21 +250,12 @@ class MCDI(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Music_CD_identifier>`_
     """
-
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'MCDI'
-
     def toc(self):
         return self.fields()
 
 
 class NCON(Frame):
     """A mysterious binary frame added by MusicMatch (NCON)"""
-
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'NCON'
 
 
 class PRIV(Frame):
@@ -292,10 +275,6 @@ class PRIV(Frame):
             self._owner = TextField.read(stream)
             self._data = BinaryField.read(stream)
 
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'PRIV'
-
     def owner(self):
         return str(self._owner)
 
@@ -303,7 +282,7 @@ class PRIV(Frame):
         return bytes(self._data)
 
     def __str__(self):
-        return f'[owner {self.owner()}] {self.data()}'
+        return f'[owner {self.owner()}][data={self.data()}]'
 
 
 class UFID(PRIV):
@@ -315,10 +294,6 @@ class UFID(PRIV):
 
     See `specification <http://id3.org/id3v2.3.0#Unique_file_identifier>`_
     """
-
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'UFID'
 
 
 class TextFrame(Frame):
@@ -339,10 +314,6 @@ class TextFrame(Frame):
             self._codec = CodecField.read(stream)
             self._text = EncodedTextField.read(stream, codec=self._codec)
 
-    @staticmethod
-    def represents(identifier):
-        return identifier.startswith(b'T')
-
     def text(self):
         return str(self._text)
 
@@ -351,26 +322,19 @@ class TextFrame(Frame):
 
 
 class PicardFrame(TextFrame):
-    """A Special, kind of hacky frame introduced by MusicBrainz Picard (XSO*)
-
-    Can be XSOA, XSOT or XSOP that map to TSOA, TSOT and TSOP in ID3v2.4
-    """
-
-    @staticmethod
-    def represents(identifier):
-        return identifier in [b'XSOA', b'XSOP', b'XSOT']
+    """Mysterious frame introduced by MusicBrainz Picard (XSO*)"""
 
 
 class XSOP(PicardFrame):
-    """Performing Artist sort order"""
+    """MusicBrainz Performing Artist sort order"""
 
 
 class XSOA(PicardFrame):
-    """Album sort order"""
+    """MusicBrainz Album sort order"""
 
 
 class XSOT(PicardFrame):
-    """Track sort oder"""
+    """MusicBrainz Track sort oder"""
 
 
 class TXXX(Frame):
@@ -393,10 +357,6 @@ class TXXX(Frame):
             self._description = EncodedTextField.read(stream, self._codec)
             self._text = EncodedTextField.read(stream, self._codec)
 
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'TXXX'
-
     def text(self):
         return str(self._text)
 
@@ -404,7 +364,7 @@ class TXXX(Frame):
         return str(self._description)
 
     def __str__(self):
-        return f'[description {self.description()}] {self.text()}'
+        return f'[description={self.description()}][text={self.text()}]'
 
 
 class URLLinkFrame(Frame):
@@ -422,10 +382,6 @@ class URLLinkFrame(Frame):
 
     def __str__(self):
         return self.url()
-
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'WOAR'
 
 
 class WCOM(URLLinkFrame):
@@ -480,10 +436,6 @@ class WXXX(Frame):
             self._description = EncodedTextField.read(stream, self._codec)
             self._url = TextField.read(stream)
 
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'WXXX'
-
     def description(self):
         return str(self._description)
 
@@ -491,7 +443,7 @@ class WXXX(Frame):
         return str(self._url)
 
     def __str__(self):
-        return f'[description {self.description()}] {self.url()}'
+        return f'[description {self.description()}][url={self.url()}]'
 
 
 class COMM(Frame):
@@ -515,10 +467,6 @@ class COMM(Frame):
             self._description = EncodedTextField.read(stream, self._codec)
             self._comment = EncodedTextField.read(stream, self._codec)
 
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'COMM'
-
     def language(self):
         return str(self._language)
 
@@ -531,7 +479,7 @@ class COMM(Frame):
     def __str__(self):
         return f'[language {self.language()}]' \
                f'[description {self.description()}] ' \
-               f'{self.comment()}'
+               f'[comment={self.comment()}]'
 
 
 class CHAP(Frame):
@@ -561,10 +509,6 @@ class CHAP(Frame):
             self._end_offset = IntegerField.read(stream)
             # TODO: needs to be another field
             self._sub_frames = stream.read()
-
-    @staticmethod
-    def represents(identifier):
-        return identifier == b'CHAP'
 
     def sub_frames(self):
         """CHAP frames include 0-2 sub frames (of type TIT2 and TIT3)"""

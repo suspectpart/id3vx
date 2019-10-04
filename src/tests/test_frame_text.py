@@ -84,15 +84,3 @@ class TextFrameTests(unittest.TestCase):
         # Assert
         self.assertEqual(frame.text(), text)
         self.assertEqual(str(frame), text)
-
-    def test_represents_every_text_frame(self):
-        """Represents every Frame ID starting with 'T'"""
-        # System under test
-        frame = TextFrame
-
-        # Act - Assert
-        self.assertTrue(frame.represents(b'TXXX'))
-        self.assertTrue(frame.represents(b'TALB'))
-        self.assertTrue(frame.represents(b'TIT2'))
-        self.assertFalse(frame.represents(b'PRIV'))
-        self.assertFalse(frame.represents(b'COMM'))
