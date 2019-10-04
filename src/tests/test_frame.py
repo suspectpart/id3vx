@@ -63,7 +63,7 @@ class FrameHeaderTests(unittest.TestCase):
         # Assert
         self.assertEqual(header.frame_size(), 255)
         self.assertEqual(header.flags(), FrameHeader.Flags(0))
-        self.assertEqual(header.id(), frame_id)
+        self.assertEqual(header.id(), "PRIV")
 
     def test_reads_all_flags(self):
         """Reads all flags correctly"""
@@ -116,7 +116,7 @@ class FrameHeaderTests(unittest.TestCase):
 
         # Assert
         self.assertEqual(header.frame_size(), 1)
-        self.assertEqual(header.id(), frame_id)
+        self.assertEqual(header.id(), frame_id.decode("latin1"))
         self.assertEqual(header.flags(), FrameHeader.Flags(0))
 
     def test_no_header_from_too_short_stream(self):

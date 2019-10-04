@@ -86,8 +86,8 @@ class FrameHeader:
     def flags(self):
         return FrameHeader.Flags(self._flags)
 
-    def id(self):
-        return self._id
+    def id(self) -> str:
+        return Codec.default().decode(self._id)
 
     def frame_size(self):
         """Overall frame size excluding the 10 bytes header size"""
@@ -100,7 +100,7 @@ class FrameHeader:
 
     def __bytes__(self):
         return struct.pack('>4sLH',
-                           self.id(),
+                           self.id().encode("latin1"),
                            self.frame_size(),
                            int(self.flags()))
 
@@ -125,10 +125,7 @@ class Frame:
 
         fields = mp3.read(header.frame_size())
 
-        frame_id = header.id().decode("latin1")
-        frame = FRAMES.get(frame_id, Frame)
-
-        return frame(header, fields)
+        return FRAMES.get(header.id(), Frame)(header, fields)
 
     def __init__(self, header, fields):
         self._header = header
@@ -146,7 +143,7 @@ class Frame:
         See `specification <http://id3.org/id3v2.3.0#Declared_ID3v2_frames>`_
         for a full list.
         """
-        return Codec.default().decode(self.header().id())
+        return self.header().id()
 
     def name(self):
         """Human-readable name of a frame.
@@ -267,7 +264,6 @@ class PRIV(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Private_frame>`_
     """
-
     def __init__(self, header, fields):
         super().__init__(header, fields)
 
@@ -283,6 +279,35 @@ class PRIV(Frame):
 
     def __str__(self):
         return f'[owner {self.owner()}][data={self.data()}]'
+
+
+class GEOB(Frame):
+    """General encapsulated object (GEOB)
+
+    <Header for 'General encapsulated object', ID: "GEOB">
+    Text encoding           $xx
+    MIME type               <text string> $00
+    Filename                <text string according to encoding> $00 (00)
+    Content description     $00 (00)
+    Encapsulated object     <binary data>
+
+    See `specification <http://id3.org/id3v2.3.0#General_encapsulated_object>`_
+    """
+    def __init__(self, header, fields):
+        super().__init__(header, fields)
+
+        with BytesIO(fields) as stream:
+            self._codec = CodecField.read(stream)
+            self._mime_type = TextField.read(stream)
+            self._file_name = EncodedTextField.read(stream, self._codec)
+            self._description = EncodedTextField.read(stream, self._codec)
+            self._object = BinaryField.read(stream)
+
+    def __str__(self):
+        return f'[mime-type={self._mime_type}]' \
+               f'[filename={self._file_name}]' \
+               f'[description={self._description}]' \
+               f'[object={bytes(self._object)}]'
 
 
 class UFID(PRIV):
@@ -814,5 +839,6 @@ class TYER(TextFrame):
     """Year (4 characters)"""
 
 
+# Is this good practice? I don't know...
 classes = inspect.getmembers(sys.modules[__name__], inspect.isclass)
 FRAMES = {name: clazz for (name, clazz) in classes}

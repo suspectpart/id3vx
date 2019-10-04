@@ -9,6 +9,7 @@ if __name__ == "__main__":
     try:
         tag = Tag.from_file(path)
         print(tag, *(repr(frame) for frame in tag), sep="\n")
+        print()
     except (UnsupportedError, NoTagError) as error:
         print(f"{str(error)} (file: {path})")
         sys.exit(1)
