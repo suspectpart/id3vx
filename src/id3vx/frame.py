@@ -1,9 +1,11 @@
+import dataclasses
 import datetime
 import enum
 import inspect
 import struct
 import sys
 from collections import namedtuple
+from dataclasses import dataclass
 from enum import IntFlag
 from io import BytesIO
 
@@ -108,12 +110,16 @@ class FrameHeader:
         return FrameHeader.SIZE
 
 
+@dataclass
 class Frame:
     """An ID3v2.3 frame.
 
     Refer to `ID3v2.3 frame specification
     <http://id3.org/id3v2.3.0#ID3v2_frame_overview>`_
     """
+    header: FrameHeader
+    fields: bytes
+
     FIELDS = Fields()
 
     @classmethod
@@ -134,17 +140,7 @@ class Frame:
         with BytesIO(raw_bytes) as stream:
             fields = cls.FIELDS.read(stream)
             # noinspection PyArgumentList
-            return cls(header, raw_bytes, *fields.values())
-
-    def __init__(self, header, fields):
-        self._header = header
-        self._fields = fields
-
-    def header(self):
-        return self._header
-
-    def fields(self):
-        return self._fields
+            return cls(header, raw_bytes, **fields)
 
     def id(self):
         """The 4-letter frame id of this frame.
@@ -152,7 +148,7 @@ class Frame:
         See `specification <http://id3.org/id3v2.3.0#Declared_ID3v2_frames>`_
         for a full list.
         """
-        return self.header().id()
+        return self.header.id()
 
     def name(self):
         """Human-readable name of a frame.
@@ -164,23 +160,19 @@ class Frame:
 
     def __len__(self):
         """The overall size of the frame in bytes, including header."""
-        return len(self.header()) + self.header().frame_size()
+        return len(self.header) + self.header.frame_size()
 
     def __str__(self):
-        return str(self.fields())
+        return str(self.fields)
 
     def __repr__(self):
-        return f'{type(self).__name__}(' \
-               f'{repr(self.header())},' \
-               f'fields="{shorten(str(self), 250)}",size={len(self)})'
+        return f'{type(self).__name__}({repr(self.header)})'
 
     def __bytes__(self):
-        return bytes(self.header()) + bytes(self.fields())
-
-    def __setattr__(self, key, value):
-        self.__dict__[key] = value
+        return bytes(self.header) + bytes(self.fields)
 
 
+@dataclass
 class APIC(Frame):
     """Attached picture frame (APIC)
 
@@ -193,12 +185,18 @@ class APIC(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Attached_picture>`_
     """
+    codec: Codec
+    mime_type: str
+    picture_type: int
+    description: str
+    data: bytes
+
     FIELDS = Fields(
         CodecField(),
-        TextField("_mime_type"),
-        IntegerField("_picture_type", 1),
-        EncodedTextField("_description"),
-        BinaryField("_data"),
+        TextField("mime_type"),
+        IntegerField("picture_type", 1),
+        EncodedTextField("description"),
+        BinaryField("data"),
     )
 
     class PictureType(enum.Enum):
@@ -224,35 +222,15 @@ class APIC(Frame):
         BAND_LOGO_TYPE = 0x13  # "Band/artist logotype"
         PUBLISHER_LOGO_TYPE = 0x14  # "Publisher/Studio logotype"
 
-    def __init__(self, header, fields, codec, mime_type, picture_type, description,
-                 data):
-        super().__init__(header, fields)
-
-        self._codec = codec
-        self._mime_type = mime_type
-        self._picture_type = picture_type
-        self._description = description
-        self._data = data
-
-    def picture_type(self):
-        return self.PictureType(int(self._picture_type))
-
-    def description(self):
-        return str(self._description)
-
-    def mime_type(self):
-        return str(self._mime_type)
-
-    def data(self):
-        return bytes(self._data)
-
-    def __str__(self):
-        return f"[mime-type={self.mime_type()}]" \
-               f"[description={self.description()}]" \
-               f"[picture-type={self.picture_type()}]" \
-               f"[data={self.data()}]"
+    def __repr__(self):
+        return f"{super().__repr__()}" \
+               f"[mime-type={self.mime_type}]" \
+               f"[description={self.description}]" \
+               f"[picture-type={self.picture_type}]" \
+               f"[data={self.data}]"
 
 
+@dataclass
 class MCDI(Frame):
     """A Music CD Identifier Frame (MCDI)
 
@@ -261,15 +239,22 @@ class MCDI(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Music_CD_identifier>`_
     """
+    toc: bytes
 
-    def toc(self):
-        return self.fields()
+    FIELDS = Fields(
+        BinaryField("toc"),
+    )
+
+    def __repr__(self):
+        return f"{super().__repr__()}" \
+               f"[toc={self.toc}]"
 
 
 class NCON(Frame):
     """A mysterious binary frame added by MusicMatch (NCON)"""
 
 
+@dataclass
 class PRIV(Frame):
     """Private frame (PRIV)
 
@@ -279,28 +264,27 @@ class PRIV(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Private_frame>`_
     """
+    owner: str
+    data: bytes
+
     FIELDS = Fields(
-        TextField("_owner"),
-        BinaryField("_data")
+        TextField("owner"),
+        BinaryField("data")
     )
 
-    def __init__(self, header, fields, owner, data):
-        super().__init__(header, fields)
-
-        self._owner = owner
-        self._data = data
-
-    def owner(self):
-        return self._owner
-
-    def data(self):
-        return self._data
-
-    def __str__(self):
-        return f'[owner {self.owner()}][data={self.data()}]'
+    def __repr__(self):
+        return f"{super().__repr__()}" \
+               f'[owner {self.owner}][data={self.data}]'
 
 
+@dataclass
 class GEOB(Frame):
+    codec: Codec
+    mime_type: str
+    filename: str
+    description: str
+    obj: str
+
     """General encapsulated object (GEOB)
 
     <Header for 'General encapsulated object', ID: "GEOB">
@@ -314,25 +298,17 @@ class GEOB(Frame):
     """
     FIELDS = Fields(
         CodecField(),
-        TextField("_mime_type"),
-        EncodedTextField("_filename"),
-        EncodedTextField("_description"),
-        BinaryField("_object")
+        TextField("mime_type"),
+        EncodedTextField("filename"),
+        EncodedTextField("description"),
+        BinaryField("obj")
     )
 
-    def __init__(self, header, fields, mime_type, filename, description, obj):
-        super().__init__(header, fields)
-
-        self._mime_type = mime_type
-        self._filename = filename
-        self._description = description
-        self._obj = obj
-
     def __str__(self):
-        return f'[mime-type={self._mime_type}]' \
-               f'[filename={self._filename}]' \
-               f'[description={self._description}]' \
-               f'[object={bytes(self._obj)}]'
+        return f'[mime-type={self.mime_type}]' \
+               f'[filename={self.filename}]' \
+               f'[description={self.description}]' \
+               f'[object={bytes(self.obj)}]'
 
 
 class UFID(PRIV):
@@ -346,6 +322,7 @@ class UFID(PRIV):
     """
 
 
+@dataclass
 class TextFrame(Frame):
     """A text information frame (T000 - TZZZ)
 
@@ -356,22 +333,16 @@ class TextFrame(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Text_information_frames>`_
     """
+    codec: Codec
+    text: str
+
     FIELDS = Fields(
         CodecField(),
-        EncodedTextField("_text"),
+        EncodedTextField("text"),
     )
 
-    def __init__(self, header, fields, codec, text):
-        super().__init__(header, fields)
-
-        self._codec = codec
-        self._text = text
-
-    def text(self):
-        return str(self._text)
-
-    def __str__(self):
-        return self.text()
+    def __repr__(self):
+        return f"{super().__repr__()}[text={self.text}]"
 
 
 class PicardFrame(TextFrame):
@@ -390,6 +361,7 @@ class XSOT(PicardFrame):
     """MusicBrainz Track sort oder"""
 
 
+@dataclass
 class TXXX(Frame):
     """User defined text information frame (TXXX)
 
@@ -401,29 +373,22 @@ class TXXX(Frame):
     See `specification
     <http://id3.org/id3v2.3.0#User_defined_text_information_frame>`_
     """
+    codec: Codec
+    description: str
+    text: str
+
     FIELDS = Fields(
         CodecField(),
-        EncodedTextField("_description"),
-        EncodedTextField("_text"),
+        EncodedTextField("description"),
+        EncodedTextField("text"),
     )
 
-    def __init__(self, header, fields, codec, description, text):
-        super().__init__(header, fields)
-
-        self._codec = codec
-        self._description = description
-        self._text = text
-
-    def text(self):
-        return str(self._text)
-
-    def description(self):
-        return str(self._description)
-
-    def __str__(self):
-        return f'[description={self.description()}][text={self.text()}]'
+    def __repr__(self):
+        return f'{super().__repr__()}' \
+               f'[description={self.description}][text={self.text}]'
 
 
+@dataclass
 class URLLinkFrame(Frame):
     """Url link Frame (W000 - WZZZ)
 
@@ -433,20 +398,14 @@ class URLLinkFrame(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#URL_link_frames>`_
     """
+    url: str
+
     FIELDS = Fields(
-        TextField("_url"),
+        TextField("url"),
     )
 
-    def __init__(self, header, fields, url):
-        super().__init__(header, fields)
-
-        self._url = url
-
-    def url(self):
-        return self._url
-
-    def __str__(self):
-        return self.url()
+    def __repr__(self):
+        return f"{super().__repr__()}[url={self.url}]"
 
 
 class WCOM(URLLinkFrame):
@@ -481,6 +440,7 @@ class WPUB(URLLinkFrame):
     """Publishers official webpage"""
 
 
+@dataclass
 class WXXX(Frame):
     """A User Defined URL Frame (WXXX)
 
@@ -492,29 +452,22 @@ class WXXX(Frame):
     See `specification
     <http://id3.org/id3v2.3.0#User_defined_URL_link_frame>`_
     """
+    codec: Codec
+    description: str
+    url: str
+
     FIELDS = Fields(
         CodecField(),
-        EncodedTextField("_description"),
-        TextField("_url"),
+        EncodedTextField("description"),
+        TextField("url"),
     )
 
-    def __init__(self, header, fields, codec, url, description):
-        super().__init__(header, fields)
-
-        self._codec = codec
-        self._url = url
-        self._description = description
-
-    def description(self):
-        return str(self._description)
-
-    def url(self):
-        return str(self._url)
-
-    def __str__(self):
-        return f'[description {self.description()}][url={self.url()}]'
+    def __repr__(self):
+        return f'{super().__repr__()}' \
+               f'[description {self.description}][url={self.url}]'
 
 
+@dataclass
 class COMM(Frame):
     """Comment Frame (COMM)
 
@@ -526,36 +479,26 @@ class COMM(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Comments>`_
     """
+    codec: Codec
+    language: str
+    description: str
+    comment: str
+
     FIELDS = Fields(
         CodecField(),
-        FixedLengthTextField("_language", 3),
-        EncodedTextField("_description"),
-        EncodedTextField("_comment"),
+        FixedLengthTextField("language", 3),
+        EncodedTextField("description"),
+        EncodedTextField("comment"),
     )
 
-    def __init__(self, header, fields, codec, language, description, comment):
-        super().__init__(header, fields)
-
-        self._codec = codec
-        self._comment = comment
-        self._description = description
-        self._language = language
-
-    def language(self):
-        return str(self._language)
-
-    def description(self):
-        return str(self._description)
-
-    def comment(self):
-        return str(self._comment)
-
-    def __str__(self):
-        return f'[language {self.language()}]' \
-               f'[description {self.description()}] ' \
-               f'[comment={self.comment()}]'
+    def __repr__(self):
+        return f'{super().__repr__()}' \
+               f'[language={self.language}]' \
+               f'[description={self.description}]' \
+               f'[comment={self.comment}]'
 
 
+@dataclass
 class PCNT(Frame):
     """Play counter (PCNT)
 
@@ -564,23 +507,18 @@ class PCNT(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Play_counter>`_
     """
-    FIELDS = Fields(
-        IntegerField("_counter")
-    )
-
-    def __init__(self, header, fields, counter):
-        super().__init__(header, fields)
-
-        self._counter = counter
+    counter: int
 
     # FIXME: doesn't (but who listens to a song more than 2 ** 32 - 1 times?)
-    def counter(self):
-        return int(self._counter)
+    FIELDS = Fields(
+        IntegerField("counter")
+    )
 
-    def __str__(self):
-        return f'[counter={self.counter()}]'
+    def __repr__(self):
+        return f'{super().__repr__()}[counter={self.counter}]'
 
 
+@dataclass
 class USLT(Frame):
     """Unsynchronised lyrics (USLT)
 
@@ -590,6 +528,11 @@ class USLT(Frame):
     Content descriptor  <text string according to encoding> $00 (00)
     Lyrics/text         <full text string according to encoding>
     """
+    codec: Codec
+    language: str
+    description: str
+    lyrics: str
+
     FIELDS = Fields(
         CodecField(),
         FixedLengthTextField("_language", 3),
@@ -597,20 +540,14 @@ class USLT(Frame):
         EncodedTextField("_lyrics"),
     )
 
-    def __init__(self, header, fields, codec, language, description, lyrics):
-        super().__init__(header, fields)
-
-        self._codec = codec
-        self._language = language
-        self._description = description
-        self._lyrics = lyrics
-
-    def __str__(self):
-        return f'[language={self._language}]' \
-               f'[description={self._description}]' \
-               f'[lyrics={self._lyrics}]'
+    def __repr__(self):
+        return f'{super().__repr__()}' \
+               f'[language={self.language}]' \
+               f'[description={self.description}]' \
+               f'[lyrics={self.lyrics}]'
 
 
+@dataclass
 class CHAP(Frame):
     """A Chapter frame (CHAP)
 
@@ -624,26 +561,23 @@ class CHAP(Frame):
 
     See `specification <http://id3.org/id3v2-chapters-1.0>`_
     """
+    element_id: str
+    start_time: int
+    end_time: int
+    start_offset: int
+    end_offset: int
+    _sub_frames: bytes
+
     FIELDS = Fields(
-        TextField("_element_id"),
-        IntegerField("_start_time"),
-        IntegerField("_end_time"),
-        IntegerField("_start_offset"),
-        IntegerField("_end_offset"),
+        TextField("element_id"),
+        IntegerField("start_time"),
+        IntegerField("end_time"),
+        IntegerField("start_offset"),
+        IntegerField("end_offset"),
         BinaryField("_sub_frames"),
     )
 
     Timings = namedtuple("Timings", "start, end, start_offset, end_offset")
-
-    def __init__(self, header, fields, element_id, start_time, end_time, start_offset, end_offset, sub_frames):
-        super().__init__(header, fields)
-
-        self._element_id = element_id
-        self._start_time = start_time
-        self._end_time = end_time
-        self._start_offset = start_offset
-        self._end_offset = end_offset
-        self._sub_frames = sub_frames
 
     def sub_frames(self):
         """CHAP frames include 0-2 sub frames (of type TIT2 and TIT3)"""
@@ -652,41 +586,31 @@ class CHAP(Frame):
 
         return (f for f in frames if f)
 
-    def element_id(self):
-        return self._element_id
+    def __repr__(self):
+        start = datetime.timedelta(milliseconds=self.start_time)
+        end = datetime.timedelta(milliseconds=self.end_time)
 
-    def start(self):
-        return datetime.timedelta(milliseconds=self._start_time)
-
-    def end(self):
-        return datetime.timedelta(milliseconds=self._end_time)
-
-    def offset_start(self):
-        return self._start_offset
-
-    def offset_end(self):
-        return self._end_offset
-
-    def __str__(self):
-        return f'[{self._element_id}] ' \
-               f'start: {self.start()} ' \
-               f'end: {self.end()} ' \
-               f'start_offset: {self.offset_start()} ' \
-               f'end_offset: {self.offset_end()} ' \
-               f'sub_frames: {" ".join(repr(f) for f in self.sub_frames())}'
+        return f'{super().__repr__()}' \
+               f'[element_id={self.element_id}]' \
+               f'[start={start}]' \
+               f'[end={end}]' \
+               f'[start_offset={self.start_offset}]' \
+               f'[end_offset={self.end_offset}]' \
+               f'[sub_frames={" ".join(repr(f) for f in self.sub_frames())}]'
 
     def __bytes__(self):
-        header = bytes(self.header())
-        element_id = Codec.default().encode(self._element_id)
+        header = bytes(self.header)
+        element_id = Codec.default().encode(self.element_id)
         timings = struct.pack('>LLLL',
-                              int(self._start_time),
-                              int(self._end_time),
-                              self.offset_start(),
-                              self.offset_end())
+                              int(self.start_time),
+                              int(self.end_time),
+                              self.start_offset,
+                              self.end_offset)
 
         return header + element_id + timings + self._sub_frames
 
 
+@dataclass
 class USER(Frame):
     """Terms of use (USER)
 
@@ -695,20 +619,19 @@ class USER(Frame):
     Language        $xx xx xx
     The actual text <text string according to encoding>
     """
+    codec: Codec
+    language: str
+    text: str
+
     FIELDS = Fields(
         CodecField(),
-        FixedLengthTextField("_language", 3),
-        EncodedTextField("_text"),
+        FixedLengthTextField("language", 3),
+        EncodedTextField("text"),
     )
 
-    def __init__(self, header, fields, language, text):
-        super().__init__(header, fields)
-
-        self._text = text
-        self._language = language
-
     def __str__(self):
-        return f'[language={self._language}][text={self._text}]'
+        return f'{super().__repr__()}' \
+               f'[language={self.language}][text={self.text}]'
 
 
 DECLARED_FRAMES = {

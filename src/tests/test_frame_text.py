@@ -18,8 +18,8 @@ class TextFrameTests(unittest.TestCase):
         frame = TextFrame.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.text(), text)
-        self.assertEqual(str(frame), text)
+        self.assertEqual(frame.text, text)
+        self.assertIn(text, repr(frame))
 
     def test_decodes_latin1_frames_without_null_terminator(self):
         """Decodes Latin1 encoded text"""
@@ -34,8 +34,8 @@ class TextFrameTests(unittest.TestCase):
         frame = TextFrame.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.text(), text)
-        self.assertEqual(str(frame), text)
+        self.assertEqual(frame.text, text)
+        self.assertIn(text, repr(frame))
 
     def test_decodes_utf_16_frames(self):
         """Decodes UTF-16 encoded text"""
@@ -50,8 +50,8 @@ class TextFrameTests(unittest.TestCase):
         frame = TextFrame.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.text(), text)
-        self.assertEqual(str(frame), text)
+        self.assertEqual(frame.text, text)
+        self.assertIn(text, repr(frame))
 
     def test_decodes_utf_16_be_frames(self):
         """Decodes UTF-16BE encoded text"""
@@ -66,8 +66,8 @@ class TextFrameTests(unittest.TestCase):
         frame = TextFrame.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.text(), text)
-        self.assertEqual(str(frame), text)
+        self.assertEqual(frame.text, text)
+        self.assertIn(text, repr(frame))
 
     def test_decodes_utf_8_frames(self):
         """Decodes UTF-8 encoded text"""
@@ -82,5 +82,5 @@ class TextFrameTests(unittest.TestCase):
         frame = TextFrame.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.text(), text)
-        self.assertEqual(str(frame), text)
+        self.assertEqual(frame.text, text)
+        self.assertIn(text, repr(frame))

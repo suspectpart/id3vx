@@ -16,8 +16,8 @@ class PrivateFrameTests(unittest.TestCase):
         frame = PRIV.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.header(), header)
-        self.assertEqual(frame.data(), random_binary)
-        self.assertEqual(frame.owner(), owner)
-        self.assertIn(str(random_binary), str(frame))
-        self.assertIn(owner, str(frame))
+        self.assertEqual(frame.header, header)
+        self.assertEqual(frame.data, random_binary)
+        self.assertEqual(frame.owner, owner)
+        self.assertIn(str(random_binary), repr(frame))
+        self.assertIn(owner, repr(frame))

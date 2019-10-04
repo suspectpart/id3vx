@@ -1,5 +1,4 @@
 import unittest
-from io import BytesIO
 
 from id3vx.frame import FrameHeader, TXXX
 
@@ -20,10 +19,10 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         frame = TXXX.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.text(), text.decode("utf-16"))
-        self.assertEqual(frame.description(), description.decode("utf-16"))
-        self.assertIn(text.decode("utf-16"), str(frame))
-        self.assertIn(description.decode("utf-16"), str(frame))
+        self.assertEqual(frame.text, text.decode("utf-16"))
+        self.assertEqual(frame.description, description.decode("utf-16"))
+        self.assertIn(text.decode("utf-16"), repr(frame))
+        self.assertIn(description.decode("utf-16"), repr(frame))
 
     def test_decodes_latin1_frames_without_null_terminator(self):
         """Decodes Latin1 encoded text"""
@@ -40,10 +39,10 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         frame = TXXX.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.text(), text.decode("utf-8"))
-        self.assertEqual(frame.description(), description.decode("utf-8"))
-        self.assertIn(text.decode("utf-8"), str(frame))
-        self.assertIn(description.decode("utf-8"), str(frame))
+        self.assertEqual(frame.text, text.decode("utf-8"))
+        self.assertEqual(frame.description, description.decode("utf-8"))
+        self.assertIn(text.decode("utf-8"), repr(frame))
+        self.assertIn(description.decode("utf-8"), repr(frame))
 
     def test_decodes_frames_with_empty_description(self):
         """Decodes Latin1 encoded text"""
@@ -60,6 +59,6 @@ class UserDefinedTextFrameTests(unittest.TestCase):
         frame = TXXX.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.text(), text.decode("utf-8"))
-        self.assertEqual(frame.description(), "")
-        self.assertIn(text.decode("utf-8"), str(frame))
+        self.assertEqual(frame.text, text.decode("utf-8"))
+        self.assertEqual(frame.description, "")
+        self.assertIn(text.decode("utf-8"), repr(frame))

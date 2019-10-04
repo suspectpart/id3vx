@@ -22,12 +22,12 @@ class CommentFrameTests(unittest.TestCase):
         frame = COMM.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.comment(), comment.decode(encoding))
-        self.assertEqual(frame.description(), description.decode(encoding))
-        self.assertEqual(frame.language(), language.decode("latin1"))
-        self.assertIn(language.decode("latin1"), str(frame))
-        self.assertIn(description.decode(encoding), str(frame))
-        self.assertIn(comment.decode(encoding), str(frame))
+        self.assertEqual(frame.comment, comment.decode(encoding))
+        self.assertEqual(frame.description, description.decode(encoding))
+        self.assertEqual(frame.language, language.decode("latin1"))
+        self.assertIn(language.decode("latin1"), repr(frame))
+        self.assertIn(description.decode(encoding), repr(frame))
+        self.assertIn(comment.decode(encoding), repr(frame))
 
     def test_allow_empty_comment_and_description(self):
         """Allows empty comment and description"""
@@ -46,6 +46,6 @@ class CommentFrameTests(unittest.TestCase):
         frame = COMM.read_fields(header, fields)
 
         # Assert
-        self.assertEqual(frame.comment(), "")
-        self.assertEqual(frame.description(), "")
-        self.assertEqual(frame.language(), language.decode("latin1"))
+        self.assertEqual(frame.comment, "")
+        self.assertEqual(frame.description, "")
+        self.assertEqual(frame.language, language.decode("latin1"))

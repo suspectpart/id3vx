@@ -24,9 +24,9 @@ class FramesTests(unittest.TestCase):
         # Assert
         self.assertEqual(len(frames), 2)
         self.assertEqual(frames[0].id(), 'TALB')
-        self.assertEqual(frames[0].text(), 'thealbum')
+        self.assertEqual(frames[0].text, 'thealbum')
         self.assertEqual(frames[1].id(), 'TIT2')
-        self.assertEqual(frames[1].text(), 'theartist')
+        self.assertEqual(frames[1].text, 'theartist')
 
     def test_handles_padding(self):
         """Stops on first padding frame"""
@@ -44,7 +44,7 @@ class FramesTests(unittest.TestCase):
         # Assert
         self.assertEqual(len(frames), 1)
         self.assertEqual(frames[0].id(), 'TALB')
-        self.assertEqual(frames[0].text(), 'thealbum')
+        self.assertEqual(frames[0].text, 'thealbum')
 
 
 class FrameHeaderTests(unittest.TestCase):
@@ -178,9 +178,9 @@ class FrameTests(unittest.TestCase):
         frame = Frame(header, fields)
 
         # Assert
-        self.assertEqual(frame.header(), header)
+        self.assertEqual(frame.header, header)
         self.assertEqual(frame.id(), "PRIV")
-        self.assertEqual(frame.fields(), fields)
+        self.assertEqual(frame.fields, fields)
         self.assertEqual(str(frame), str(fields))
         self.assertEqual(len(frame), frame_size + len(header))
         self.assertEqual(frame.name(), "Private frame")
@@ -242,7 +242,7 @@ class FrameTests(unittest.TestCase):
 
         # Act - Assert
         self.assertEqual(type(frame), TALB)
-        self.assertEqual(frame.text(), "Album")
+        self.assertEqual(frame.text, "Album")
 
 
 class APICTests(unittest.TestCase):
@@ -259,7 +259,7 @@ class APICTests(unittest.TestCase):
 
         fields = encoding + mime_type + picture_type + desc_bytes + data
 
-        expected_pic_type = APIC.PictureType.BRIGHT_COLORED_FISH
+        expected_pic_type = 17
         expected_mime_type = "image/paper"
 
         # System under test
@@ -267,15 +267,15 @@ class APICTests(unittest.TestCase):
 
         # Act - Assert
         self.assertEqual(type(frame), APIC)
-        self.assertEqual(frame.description(), description)
-        self.assertEqual(frame.picture_type(), expected_pic_type)
-        self.assertEqual(frame.mime_type(), "image/paper")
-        self.assertEqual(frame.data(), data)
+        self.assertEqual(frame.description, description)
+        self.assertEqual(frame.picture_type, expected_pic_type)
+        self.assertEqual(frame.mime_type, "image/paper")
+        self.assertEqual(frame.data, data)
 
-        self.assertIn(description, str(frame))
-        self.assertIn(str(data), str(frame))
-        self.assertIn(str(expected_pic_type), str(frame))
-        self.assertIn(expected_mime_type, str(frame))
+        self.assertIn(description, repr(frame))
+        self.assertIn(str(data), repr(frame))
+        self.assertIn(str(expected_pic_type), repr(frame))
+        self.assertIn(expected_mime_type, repr(frame))
 
 
 class CHAPTests(unittest.TestCase):
@@ -291,8 +291,6 @@ class CHAPTests(unittest.TestCase):
         o_start = b'\x00\xFF\xFF\xEE'
         o_end = b'\x00\x0A\x0F\xEE'
 
-        delta_start = timedelta(milliseconds=int.from_bytes(t_start, "big"))
-        delta_end = timedelta(milliseconds=int.from_bytes(t_end, "big"))
         offset_start = int.from_bytes(o_start, "big")
         offset_end = int.from_bytes(t_end, "big")
 
@@ -305,18 +303,12 @@ class CHAPTests(unittest.TestCase):
 
         # Act - Assert
         self.assertEqual(type(frame), CHAP)
-        self.assertEqual(frame.element_id(), element_id)
-        self.assertEqual(frame.start(), delta_start)
-        self.assertEqual(frame.end(), delta_end)
-        self.assertEqual(frame.offset_start(), offset_start)
-        self.assertEqual(frame.offset_end(), offset_end)
+        self.assertEqual(frame.element_id, element_id)
+        self.assertEqual(frame.start_time, 0xFFFFEE)
+        self.assertEqual(frame.end_time, 0x0A0FEE)
+        self.assertEqual(frame.start_offset, offset_start)
+        self.assertEqual(frame.end_offset, offset_end)
         self.assertEqual(bytes(frame), expected_bytes)
-
-        self.assertIn(element_id, str(frame))
-        self.assertIn(str(delta_start), str(frame))
-        self.assertIn(str(delta_end), str(frame))
-        self.assertIn(str(offset_start), str(frame))
-        self.assertIn(str(offset_end), str(frame))
 
     def test_subframes(self):
         # Arrange
@@ -345,7 +337,7 @@ class CHAPTests(unittest.TestCase):
         # Act - Assert
         self.assertEqual(1, len(sub_frames))
         self.assertEqual('TIT2', sub_frames[0].id())
-        self.assertEqual("sometext", sub_frames[0].text())
+        self.assertEqual("sometext", sub_frames[0].text)
 
 
 class MCDITests(unittest.TestCase):
@@ -355,11 +347,11 @@ class MCDITests(unittest.TestCase):
         fields = b'\xf0\xfa\xccsometocdata\xff'
 
         # System under test
-        frame = MCDI(header, fields)
+        frame = MCDI.read_fields(header, fields)
 
         # Act - Assert
         self.assertEqual(type(frame), MCDI)
-        self.assertEqual(fields, frame.toc())
+        self.assertEqual(fields, frame.toc)
 
 
 class NCONTests(unittest.TestCase):
@@ -373,7 +365,7 @@ class NCONTests(unittest.TestCase):
 
         # Act - Assert
         self.assertEqual(type(frame), NCON)
-        self.assertEqual(fields, frame.fields())
+        self.assertEqual(fields, frame.fields)
 
 
 class COMMTests(unittest.TestCase):
@@ -390,6 +382,6 @@ class COMMTests(unittest.TestCase):
         # Assert
         self.assertEqual(type(frame), COMM)
         self.assertEqual(frame.id(), 'COMM')
-        self.assertEqual(frame.language(), 'eng')
-        self.assertEqual(frame.description(), '')
-        self.assertEqual(frame.comment(), '')
+        self.assertEqual(frame.language, 'eng')
+        self.assertEqual(frame.description, '')
+        self.assertEqual(frame.comment, '')
