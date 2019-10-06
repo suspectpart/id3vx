@@ -11,7 +11,7 @@ class TagTests(unittest.TestCase):
         size = 10000
         flags = TagHeader.Flags.Experimental
 
-        header = TagHeader(b'ID3', 3, 2, flags, 10000)
+        header = TagHeader('ID3', 3, 2, flags, 10000)
         frames = Frames([])
 
         # System under test
@@ -30,7 +30,7 @@ class TagTests(unittest.TestCase):
         header = FrameHeader('TALB', 10, 0, False)
 
         frame = TextFrame(header, b'\x00sometext\x00', codec, "sometext")
-        tag_header = TagHeader(b'ID3', 3, 2, flags, 20 + padding)
+        tag_header = TagHeader('ID3', 3, 2, flags, 20 + padding)
 
         expected_bytes = bytes(tag_header) + bytes(frame) + padding * b'\x00'
 

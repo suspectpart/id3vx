@@ -13,7 +13,7 @@ class FramesTests(unittest.TestCase):
         frame_a = PRIV.read(BytesIO(bytes(header_a) + b'\x00thealbum'))
         header_b = FrameHeader("TIT2", 10, FrameHeader.Flags.Encryption, False)
         frame_b = PRIV.read(BytesIO(bytes(header_b) + b'\x00theartist'))
-        tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 39)
+        tag_header = TagHeader('ID3', 3, 0, TagHeader.Flags(0), 39)
 
         byte_string = bytes(frame_a) + bytes(frame_b)
         stream = BytesIO(byte_string)
@@ -36,7 +36,7 @@ class FramesTests(unittest.TestCase):
         stream = BytesIO(bytes(header) + fields)
         frame = PRIV.read(stream)
         padding = b'\x00' * 81
-        tag_header = TagHeader(b'ID3', 3, 0, TagHeader.Flags(0), 100)
+        tag_header = TagHeader('ID3', 3, 0, TagHeader.Flags(0), 100)
 
         byte_string = bytes(frame) + padding
 

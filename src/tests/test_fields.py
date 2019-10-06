@@ -305,7 +305,7 @@ class IntegerFieldTests(unittest.TestCase):
         field = IntegerField("field", 3)
 
         # Act
-        value = field.read(stream)
+        value = field.read(stream, context=None)
 
         # Assert
         self.assertEqual(value, expected_int)
@@ -319,7 +319,7 @@ class IntegerFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string)
 
         # System under test
-        field = IntegerField("field", 1).read(stream)
+        field = IntegerField("field", 1).read(stream, context=None)
 
         # Act
         value = int(field)
@@ -334,7 +334,7 @@ class IntegerFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string)
 
         # System under test - Act
-        field = IntegerField("field").read(stream)
+        field = IntegerField("field").read(stream, context=None)
 
         # Act
         value = int(field)

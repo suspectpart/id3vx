@@ -9,7 +9,7 @@ class TagHeaderTest(unittest.TestCase):
     def test_raises_on_wrong_identifier(self):
         """Fails to initialize on wrong identifier"""
         # Arrange
-        wrong_identifier = b'???'
+        wrong_identifier = '???'
 
         # Act - Assert
         with self.assertRaises(NoTagError):
@@ -22,12 +22,12 @@ class TagHeaderTest(unittest.TestCase):
 
         # Act - Assert
         with self.assertRaises(UnsupportedError):
-            TagHeader(b'ID3', 3, 0, flags, 0)
+            TagHeader('ID3', 3, 0, flags, 0)
 
     def test_raises_on_unsupported_version(self):
-        """Fails to initialize on wrong identifier"""
+        """Fails to initialize on unsupported version"""
         # Arrange
-        wrong_identifier = b'ID3'
+        wrong_identifier = 'ID3'
         unsupported_version = 2
         flags = TagHeader.Flags(0)
 
@@ -38,7 +38,7 @@ class TagHeaderTest(unittest.TestCase):
     def test_exposes_fields(self):
         """Exposes all relevant fields"""
         # Arrange
-        identifier = b'ID3'
+        identifier = 'ID3'
         major, minor = (3, 0)
         flags = TagHeader.Flags.Experimental
         tag_size = 1000
@@ -48,9 +48,10 @@ class TagHeaderTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(len(header), 10)
-        self.assertEqual(header.tag_size(), 1000)
-        self.assertEqual(header.version(), (major, minor))
-        self.assertEqual(header.flags(), flags)
+        self.assertEqual(header.tag_size, 1000)
+        self.assertEqual(header.major, major)
+        self.assertEqual(header.minor, minor)
+        self.assertEqual(header.flags, flags)
 
     def test_deserializes(self):
         """Deserializes from bytes"""
@@ -59,7 +60,8 @@ class TagHeaderTest(unittest.TestCase):
         byte_string = b'ID3\x03\x01\x60\x00\x00\x0A\x0A'
 
         flags = f.Experimental | f.Extended
-        version = (3, 1)
+        major = 3
+        minor = 1
         expected_tag_size = unsynchsafe(0x0A0A)
 
         # System under test / Act
@@ -67,9 +69,10 @@ class TagHeaderTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(len(header), 10)
-        self.assertEqual(header.tag_size(), expected_tag_size)
-        self.assertEqual(header.version(), version)
-        self.assertEqual(header.flags(), flags)
+        self.assertEqual(header.tag_size, expected_tag_size)
+        self.assertEqual(header.major, major)
+        self.assertEqual(header.minor, minor)
+        self.assertEqual(header.flags, flags)
         self.assertEqual(bytes(header), byte_string)
 
     def test_serialization(self):

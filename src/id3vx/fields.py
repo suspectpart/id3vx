@@ -1,6 +1,7 @@
 import enum
 from abc import ABC, abstractmethod
 
+from id3vx.binary import unsynchsafe
 from id3vx.codec import Codec
 
 
@@ -56,7 +57,7 @@ class IntegerField(Field):
 
         self._length = length
 
-    def read(self, stream, context=None) -> int:
+    def read(self, stream, context) -> int:
         """Reads a single integer from the stream
 
         :param stream: The stream to read from
@@ -77,8 +78,7 @@ class GrowingIntegerField(IntegerField):
 
 class EnumField(IntegerField):
     def __init__(self, name, enum_type, length):
-        """
-        Field that reads an integer from a stream and converts it to an enum type.
+        """Field reading a single int, converting to an enum type.
 
         :param name: Name of the field
         :param enum_type: The enum type to convert to
@@ -143,3 +143,8 @@ class FixedLengthTextField(Field):
         byte_string = Codec.default().read(stream, self._length)
 
         return Codec.default().decode(byte_string)
+
+
+class SynchsafeIntegerField(IntegerField):
+    def read(self, stream, context) -> int:
+        return unsynchsafe(super().read(stream, context))

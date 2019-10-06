@@ -1,8 +1,10 @@
 import struct
+from dataclasses import dataclass
 from enum import IntFlag
 
-from id3vx.binary import unsynchsafe, synchsafe
-from .codec import Codec
+from id3vx.binary import synchsafe
+from id3vx.fields import Fields, FixedLengthTextField, \
+    IntegerField, EnumField, SynchsafeIntegerField
 from .frame import Frames
 
 
@@ -16,6 +18,7 @@ class UnsupportedError(NotImplementedError):
         super().__init__(message)
 
 
+@dataclass
 class TagHeader:
     """ID3v2.3 tag header.
 
@@ -41,59 +44,44 @@ class TagHeader:
         Experimental = 1 << 5
         FooterPresent = 1 << 4
 
+    identifier: str
+    major: int
+    minor: int
+    flags: Flags
+    tag_size: int
+
+    FIELDS = Fields(
+        FixedLengthTextField("identifier", 3),
+        IntegerField("major", 1),
+        IntegerField("minor", 1),
+        EnumField("flags", Flags, 1),
+        SynchsafeIntegerField("tag_size"),
+    )
+
     @classmethod
     def read(cls, mp3):
-        block = mp3.read(TagHeader.SIZE)
-        identifier, major, minor, flags, size = struct.unpack('>3sBBBL', block)
+        return cls(**cls.FIELDS.read(mp3))
 
-        flags = TagHeader.Flags(flags)
-        size = unsynchsafe(size)
-
-        return cls(identifier, major, minor, flags, size)
-
-    def __init__(self, identifier, major, minor, flags, tag_size):
-        if Codec.default().decode(identifier) != TagHeader.ID3_IDENTIFIER:
+    def __post_init__(self):
+        if self.identifier != TagHeader.ID3_IDENTIFIER:
             raise NoTagError()
 
-        if major < 3:
+        if self.major < 3:
             # FIXME: v2.2 is completely broken due to shorter Frame IDs
-            raise UnsupportedError(f"ID3v2.{major}.{minor} is not supported")
+            msg = f"ID3v2.{self.major}.{self.minor} is not supported"
+            raise UnsupportedError(msg)
 
-        if TagHeader.Flags.Sync in flags:
+        if TagHeader.Flags.Sync in self.flags:
             # FIXME: v2.4 reads out of bounds on unsynchronisation frames
             raise UnsupportedError(f"Unsynchronisation is not supported")
-
-        self._version = (major, minor)
-        self._flags = flags
-        self._tag_size = tag_size
-
-    def version(self):
-        return self._version
-
-    def flags(self):
-        return self._flags
-
-    def tag_size(self):
-        """Overall size of the tag, including the header size.
-
-        For convenience reasons, tag size here includes the header size, other
-        than the `tag size specification
-        <http://id3.org/id3v2.3.0#ID3v2_header>`_ that excludes the header size
-        """
-        return self._tag_size
-
-    def __repr__(self):
-        major, minor = self.version()
-
-        return f"TagHeader(major={major},minor={minor}," \
-            f"flags={str(self.flags())},tag_size={self._tag_size})"
 
     def __bytes__(self):
         return struct.pack('>3sBBBL',
                            bytes(TagHeader.ID3_IDENTIFIER, "latin1"),
-                           *self.version(),
-                           self.flags(),
-                           synchsafe(self.tag_size()))
+                           self.major,
+                           self.minor,
+                           self.flags,
+                           synchsafe(self.tag_size))
 
     def __len__(self):
         return TagHeader.SIZE
@@ -129,7 +117,7 @@ class Tag:
 
     def __len__(self):
         """The overall size of the tag in bytes, including header."""
-        return self.header().tag_size() + len(self.header())
+        return self.header().tag_size + len(self.header())
 
     def __repr__(self):
         return f"Tag({repr(self.header())},size={len(self)})"
@@ -137,6 +125,6 @@ class Tag:
     def __bytes__(self):
         header = bytes(self.header())
         frames = b"".join(bytes(frame) for frame in self)
-        padding = self.header().tag_size() - len(frames)
+        padding = self.header().tag_size - len(frames)
 
         return header + frames + b'\x00' * padding

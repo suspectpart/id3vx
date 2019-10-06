@@ -24,10 +24,10 @@ class Frames(list):
         Read consecutive frames up until tag size specified in the header.
         Stops reading frames when an empty (padding) frame is encountered.
         """
-        synchsafe_frame_size = header.version()[0] == 4
+        synchsafe_frame_size = header.major == 4
         frames = []
 
-        while stream.tell() < header.tag_size():
+        while stream.tell() < header.tag_size + len(header):
             frame = Frame.read(stream, synchsafe_frame_size)
 
             if not frame:
@@ -37,9 +37,6 @@ class Frames(list):
             frames.append(frame)
 
         return cls(frames)
-
-    def __init__(self, args):
-        super().__init__(args)
 
 
 @dataclass
@@ -64,6 +61,11 @@ class FrameHeader:
         Encryption = 1 << 6
         GroupingIdentity = 1 << 5
 
+    identifier: str
+    frame_size: int
+    flags: Flags
+    synchsafe_size: bool
+
     FIELDS = Fields(
         FixedLengthTextField("identifier", 4),
         IntegerField("frame_size", 4),
@@ -71,11 +73,6 @@ class FrameHeader:
     )
 
     SIZE = 10
-
-    identifier: str
-    frame_size: int
-    flags: Flags
-    synchsafe_size: bool
 
     @classmethod
     def read(cls, stream, synchsafe_size=False):
@@ -115,6 +112,8 @@ class Frame:
     header: FrameHeader
     fields: bytes
 
+    # FIXME: Only needed when there are unmapped frames, messy.
+    # Maybe introduce an "unknown" frame?
     FIELDS = Fields()
 
     @staticmethod
