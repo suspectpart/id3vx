@@ -16,16 +16,21 @@ class Fields:
             self.last = fields[:-1]
 
     def __init__(self, *args):
+        """Manages sequence of fields (as kind of a pipeline).
+
+        :param args: A sequence of fields
+        """
         self._fields = args
 
     def read(self, stream):
+        """Sequentially reads all deserialized field values from the stream.
+
+        :param stream: The stream to read from
+        :return: A dictionary mapping field names to the deserialized values
+        """
         context = Fields.Context(self._fields)
-        results = {}
 
-        for field in self._fields:
-            results[field.name()] = field.read(stream, context)
-
-        return results
+        return {f.name(): f.read(stream, context) for f in self._fields}
 
 
 class Field(ABC):
@@ -42,16 +47,27 @@ class Field(ABC):
 
 class IntegerField(Field):
     def __init__(self, name, length=4):
+        """Field reading single integers from a byte stream.
+
+        :param name: Name of the field
+        :param length: The number of bytes of the integer (defaults to 4)
+        """
         super().__init__(name)
 
         self._length = length
 
     def read(self, stream, context=None) -> int:
+        """Reads a single integer from the stream
+
+        :param stream: The stream to read from
+        :param context: State of the fields pipeline
+        :return: An integer
+        """
         return int.from_bytes(stream.read(self._length), "big")
 
 
 class GrowingIntegerField(IntegerField):
-    """Reads all bytes in the stream and interprets them as int
+    """Field that reads all bytes from a byte stream, interpreted as int.
 
     (as if that made any sense at all.)
     """
@@ -61,8 +77,14 @@ class GrowingIntegerField(IntegerField):
 
 class EnumField(IntegerField):
     def __init__(self, name, enum_type, length):
-        super().__init__(name, length)
+        """
+        Field that reads an integer from a stream and converts it to an enum type.
 
+        :param name: Name of the field
+        :param enum_type: The enum type to convert to
+        :param length: Number of bytes of the enum integer
+        """
+        super().__init__(name, length)
         self._enum_type = enum_type
 
     def read(self, stream, context=None) -> enum.Enum:
