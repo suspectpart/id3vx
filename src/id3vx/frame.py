@@ -1,3 +1,4 @@
+import dataclasses
 import datetime
 import enum
 import inspect
@@ -7,10 +8,9 @@ from dataclasses import dataclass
 from enum import IntFlag
 from io import BytesIO
 
-from .binary import unsynchsafe
 from .codec import Codec
-from .fields import TextField, BinaryField, FixedLengthTextField, Fields, \
-    GrowingIntegerField, CodecField, EncodedTextField, IntegerField, EnumField
+from .fields import TextField, BinaryField, FixedLengthTextField, \
+    GrowingIntegerField, CodecField, EncodedTextField, IntegerField, EnumField, SynchsafeHackField, NoopField, Context
 from .text import shorten
 
 
@@ -61,27 +61,23 @@ class FrameHeader:
         Encryption = 1 << 6
         GroupingIdentity = 1 << 5
 
-    identifier: str
-    frame_size: int
-    flags: Flags
-    synchsafe_size: bool
-
-    FIELDS = Fields(
-        FixedLengthTextField("identifier", 4),
-        IntegerField("frame_size", 4),
-        EnumField("flags", Flags, 2)
-    )
+    identifier: str = FixedLengthTextField(4)
+    frame_size: int = SynchsafeHackField()
+    flags: Flags = EnumField(Flags, 2)
+    synchsafe_size: bool = NoopField(False)
 
     SIZE = 10
 
     @classmethod
     def read(cls, stream, synchsafe_size=False):
-        return cls(**cls.FIELDS.read(stream), synchsafe_size=synchsafe_size)
+        fields = dataclasses.fields(cls)
+        context = Context(fields)
+        context.synchsafe_size = synchsafe_size # quite a hack
 
-    def __post_init__(self):
-        # Still hacky...
-        if self.synchsafe_size:
-            self.frame_size = unsynchsafe(self.frame_size)
+        instance = cls(**{f.name: f.read(stream, context) for f in fields})
+        instance.synchsafe_size = synchsafe_size
+
+        return instance
 
     def __bytes__(self):
         return struct.pack('>4sLH',
@@ -109,12 +105,8 @@ class Frame:
     Refer to `ID3v2.3 frame specification
     <http://id3.org/id3v2.3.0#ID3v2_frame_overview>`_
     """
-    header: FrameHeader
-    fields: bytes
-
-    # FIXME: Only needed when there are unmapped frames, messy.
-    # Maybe introduce an "unknown" frame?
-    FIELDS = Fields()
+    # FIXME: this sucks
+    header: FrameHeader = NoopField(None)
 
     @staticmethod
     def read(stream, synchsafe_size=False):
@@ -125,12 +117,22 @@ class Frame:
             return None
 
         frame_bytes = stream.read(header.frame_size)
-        frame_class = FRAMES.get(header.identifier, Frame)
+        frame_class = FRAMES.get(header.identifier, UnknownFrame)
 
         with BytesIO(frame_bytes) as stream:
-            fields = frame_class.FIELDS.read(stream)
+            fields = frame_class._read(stream)
 
-        return frame_class(header, frame_bytes, **fields)
+            # FIXME: this sucks
+            fields["header"] = header
+
+        return frame_class(**fields)
+
+    @classmethod
+    def _read(cls, stream):
+        fields = dataclasses.fields(cls)
+        context = Context(fields)
+
+        return {f.name: f.read(stream, context) for f in fields}
 
     def id(self):
         """The 4-letter frame id of this frame."""
@@ -148,7 +150,17 @@ class Frame:
         return f'{type(self).__name__}({repr(self.header)}) {attrs}'
 
     def __bytes__(self):
-        return bytes(self.header) + bytes(self.fields)
+        my_bytes = b''
+        for f in dataclasses.fields(self):
+            my_bytes += bytes(f)
+
+        return my_bytes
+
+
+
+@dataclass
+class UnknownFrame(Frame):
+    raw_bytes: bytes = BinaryField()
 
 
 @dataclass(repr=False)
@@ -188,19 +200,11 @@ class APIC(Frame):
         BAND_LOGO_TYPE = 0x13  # "Band/artist logotype"
         PUBLISHER_LOGO_TYPE = 0x14  # "Publisher/Studio logotype"
 
-    codec: Codec
-    mime_type: str
-    picture_type: PictureType
-    description: str
-    data: bytes
-
-    FIELDS = Fields(
-        CodecField(),
-        TextField("mime_type"),
-        EnumField("picture_type", PictureType, 1),
-        EncodedTextField("description"),
-        BinaryField("data"),
-    )
+    codec: Codec = CodecField()
+    mime_type: str = TextField()
+    picture_type: PictureType = EnumField(PictureType, 1)
+    description: str = EncodedTextField()
+    data: bytes = BinaryField()
 
 
 @dataclass(repr=False)
@@ -212,11 +216,7 @@ class MCDI(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Music_CD_identifier>`_
     """
-    toc: bytes
-
-    FIELDS = Fields(
-        BinaryField("toc"),
-    )
+    toc: bytes = BinaryField()
 
 
 @dataclass(repr=False)
@@ -229,13 +229,8 @@ class PRIV(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Private_frame>`_
     """
-    owner: str
-    data: bytes
-
-    FIELDS = Fields(
-        TextField("owner"),
-        BinaryField("data")
-    )
+    owner: str = TextField()
+    data: bytes = BinaryField()
 
 
 @dataclass(repr=False)
@@ -251,19 +246,11 @@ class GEOB(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#General_encapsulated_object>`_
     """
-    codec: Codec
-    mime_type: str
-    filename: str
-    description: str
-    obj: str
-
-    FIELDS = Fields(
-        CodecField(),
-        TextField("mime_type"),
-        EncodedTextField("filename"),
-        EncodedTextField("description"),
-        BinaryField("obj"),
-    )
+    codec: Codec = CodecField()
+    mime_type: str = TextField()
+    filename: str = EncodedTextField()
+    description: str = EncodedTextField()
+    obj: str = BinaryField()
 
 
 @dataclass(repr=False)
@@ -277,13 +264,8 @@ class TextFrame(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Text_information_frames>`_
     """
-    codec: Codec
-    text: str
-
-    FIELDS = Fields(
-        CodecField(),
-        EncodedTextField("text"),
-    )
+    codec: Codec = CodecField()
+    text: str = EncodedTextField()
 
 
 @dataclass(repr=False)
@@ -298,15 +280,9 @@ class TXXX(Frame):
     See `specification
     <http://id3.org/id3v2.3.0#User_defined_text_information_frame>`_
     """
-    codec: Codec
-    description: str
-    text: str
-
-    FIELDS = Fields(
-        CodecField(),
-        EncodedTextField("description"),
-        EncodedTextField("text"),
-    )
+    codec: Codec = CodecField()
+    description: str = EncodedTextField()
+    text: str = EncodedTextField()
 
 
 @dataclass(repr=False)
@@ -319,11 +295,7 @@ class URLLinkFrame(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#URL_link_frames>`_
     """
-    url: str
-
-    FIELDS = Fields(
-        TextField("url"),
-    )
+    url: str = TextField()
 
 
 @dataclass(repr=False)
@@ -338,15 +310,9 @@ class WXXX(Frame):
     See `specification
     <http://id3.org/id3v2.3.0#User_defined_URL_link_frame>`_
     """
-    codec: Codec
-    description: str
-    url: str
-
-    FIELDS = Fields(
-        CodecField(),
-        EncodedTextField("description"),
-        TextField("url"),
-    )
+    codec: Codec = CodecField()
+    description: str = EncodedTextField()
+    url: str = TextField()
 
 
 @dataclass(repr=False)
@@ -361,17 +327,10 @@ class COMM(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Comments>`_
     """
-    codec: Codec
-    language: str
-    description: str
-    comment: str
-
-    FIELDS = Fields(
-        CodecField(),
-        FixedLengthTextField("language", 3),
-        EncodedTextField("description"),
-        EncodedTextField("comment"),
-    )
+    codec: Codec = CodecField()
+    language: str = FixedLengthTextField(3)
+    description: str = EncodedTextField()
+    comment: str = EncodedTextField()
 
 
 @dataclass(repr=False)
@@ -383,11 +342,7 @@ class PCNT(Frame):
 
     See `specification <http://id3.org/id3v2.3.0#Play_counter>`_
     """
-    counter: int
-
-    FIELDS = Fields(
-        GrowingIntegerField("counter")
-    )
+    counter: int = GrowingIntegerField()
 
 
 @dataclass(repr=False)
@@ -400,17 +355,10 @@ class USLT(Frame):
     Content descriptor  <text string according to encoding> $00 (00)
     Lyrics/text         <full text string according to encoding>
     """
-    codec: Codec
-    language: str
-    description: str
-    lyrics: str
-
-    FIELDS = Fields(
-        CodecField(),
-        FixedLengthTextField("language", 3),
-        EncodedTextField("description"),
-        EncodedTextField("lyrics"),
-    )
+    codec: Codec = CodecField()
+    language: str = FixedLengthTextField(3)
+    description: str = EncodedTextField()
+    lyrics: str = EncodedTextField()
 
 
 @dataclass(repr=False)
@@ -427,21 +375,12 @@ class CHAP(Frame):
 
     See `specification <http://id3.org/id3v2-chapters-1.0>`_
     """
-    element_id: str
-    start_time: int
-    end_time: int
-    start_offset: int
-    end_offset: int
-    _sub_frames: bytes
-
-    FIELDS = Fields(
-        TextField("element_id"),
-        IntegerField("start_time"),
-        IntegerField("end_time"),
-        IntegerField("start_offset"),
-        IntegerField("end_offset"),
-        BinaryField("_sub_frames"),
-    )
+    element_id: str = TextField()
+    start_time: int = IntegerField()
+    end_time: int = IntegerField()
+    start_offset: int = IntegerField()
+    end_offset: int = IntegerField()
+    _sub_frames: bytes = BinaryField()
 
     def sub_frames(self):
         """CHAP frames include 0-2 sub frames (of type TIT2 and TIT3)"""
@@ -483,15 +422,9 @@ class USER(Frame):
     Language        $xx xx xx
     The actual text <text string according to encoding>
     """
-    codec: Codec
-    language: str
-    text: str
-
-    FIELDS = Fields(
-        CodecField(),
-        FixedLengthTextField("language", 3),
-        EncodedTextField("text"),
-    )
+    codec: Codec = CodecField()
+    language: str = FixedLengthTextField(3)
+    text: str = EncodedTextField()
 
 
 class TALB(TextFrame):

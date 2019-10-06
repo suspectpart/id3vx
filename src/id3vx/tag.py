@@ -1,10 +1,11 @@
+import dataclasses
 import struct
 from dataclasses import dataclass
 from enum import IntFlag
 
 from id3vx.binary import synchsafe
-from id3vx.fields import Fields, FixedLengthTextField, \
-    IntegerField, EnumField, SynchsafeIntegerField
+from id3vx.fields import FixedLengthTextField, IntegerField, \
+    EnumField, SynchsafeIntegerField, Context
 from .frame import Frames
 
 
@@ -44,23 +45,18 @@ class TagHeader:
         Experimental = 1 << 5
         FooterPresent = 1 << 4
 
-    identifier: str
-    major: int
-    minor: int
-    flags: Flags
-    tag_size: int
-
-    FIELDS = Fields(
-        FixedLengthTextField("identifier", 3),
-        IntegerField("major", 1),
-        IntegerField("minor", 1),
-        EnumField("flags", Flags, 1),
-        SynchsafeIntegerField("tag_size"),
-    )
+    identifier: str = FixedLengthTextField(3)
+    major: int = IntegerField(default=0, length=1)
+    minor: int = IntegerField(default=0, length=1)
+    flags: Flags = EnumField(Flags, 1)
+    tag_size: int = SynchsafeIntegerField(length=4)
 
     @classmethod
     def read(cls, mp3):
-        return cls(**cls.FIELDS.read(mp3))
+        fields = dataclasses.fields(cls)
+        context = Context(fields)
+
+        return cls(**{f.name: f.read(mp3, context) for f in fields})
 
     def __post_init__(self):
         if self.identifier != TagHeader.ID3_IDENTIFIER:

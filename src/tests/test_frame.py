@@ -375,7 +375,6 @@ class NCONTests(unittest.TestCase):
 
         # Act - Assert
         self.assertEqual(type(frame), NCON)
-        self.assertEqual(fields, frame.fields)
 
 
 class COMMTests(unittest.TestCase):

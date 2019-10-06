@@ -29,7 +29,7 @@ class TagTests(unittest.TestCase):
 
         header = FrameHeader('TALB', 10, 0, False)
 
-        frame = TextFrame(header, b'\x00sometext\x00', codec, "sometext")
+        frame = TextFrame(header, codec, "sometext")
         tag_header = TagHeader('ID3', 3, 2, flags, 20 + padding)
 
         expected_bytes = bytes(tag_header) + bytes(frame) + padding * b'\x00'

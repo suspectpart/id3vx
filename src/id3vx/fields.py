@@ -1,59 +1,38 @@
 import enum
-from abc import ABC, abstractmethod
+from dataclasses import Field, MISSING
 
 from id3vx.binary import unsynchsafe
 from id3vx.codec import Codec
 
 
-class Fields:
-    class Context:
-        """Stateful context to be handed down the fields pipeline.
+class Context:
+    """Stateful context to be handed down the fields pipeline.
 
-        Some fields down the pipe need to know whether there as an encoding
-        field present or if they are the last field in the pipe.
-        """
-        def __init__(self, fields, codec=Codec.default()):
-            self.codec = codec
-            self.last = fields[:-1]
-
-    def __init__(self, *args):
-        """Manages sequence of fields (as kind of a pipeline).
-
-        :param args: A sequence of fields
-        """
-        self._fields = args
-
-    def read(self, stream):
-        """Sequentially reads all deserialized field values from the stream.
-
-        :param stream: The stream to read from
-        :return: A dictionary mapping field names to the deserialized values
-        """
-        context = Fields.Context(self._fields)
-
-        return {f.name(): f.read(stream, context) for f in self._fields}
+    Some fields down the pipe need to know whether there as an encoding
+    field present or if they are the last field in the pipe.
+    """
+    def __init__(self, fields, codec=Codec.default()):
+        self.codec = codec
+        self.last = fields[:-1]
 
 
-class Field(ABC):
-    def __init__(self, name):
-        self._name = name
+class BaseField(Field):
+    def __init__(self, default=MISSING):
+        super().__init__(default=default, default_factory=MISSING, init=True, repr=True, hash=None, compare=True,
+                         metadata=None)
 
-    def name(self):
-        return self._name
-
-    @abstractmethod
+#    @abstractmethod
     def read(self, stream, context):
         ...
 
 
-class IntegerField(Field):
-    def __init__(self, name, length=4):
+class IntegerField(BaseField):
+    def __init__(self, default=0, length=4):
         """Field reading single integers from a byte stream.
 
-        :param name: Name of the field
         :param length: The number of bytes of the integer (defaults to 4)
         """
-        super().__init__(name)
+        super().__init__(default)
 
         self._length = length
 
@@ -72,28 +51,33 @@ class GrowingIntegerField(IntegerField):
 
     (as if that made any sense at all.)
     """
-    def __init__(self, name):
-        super().__init__(name, -1)
+    def __init__(self):
+        super().__init__(length=-1)
+
+
+class SynchsafeIntegerField(IntegerField):
+    def read(self, stream, context) -> int:
+        return unsynchsafe(super().read(stream, context))
 
 
 class EnumField(IntegerField):
-    def __init__(self, name, enum_type, length):
+    def __init__(self, enum_type, length):
         """Field reading a single int, converting to an enum type.
 
-        :param name: Name of the field
         :param enum_type: The enum type to convert to
         :param length: Number of bytes of the enum integer
         """
-        super().__init__(name, length)
+        super().__init__(length=length)
+
         self._enum_type = enum_type
 
     def read(self, stream, context=None) -> enum.Enum:
         return self._enum_type(super().read(stream, context))
 
 
-class CodecField(Field):
+class CodecField(BaseField):
     def __init__(self):
-        super().__init__("codec")
+        super().__init__(Codec.default())
 
     def read(self, stream, context) -> Codec:
         codec = Codec.get(stream.read(1)[0])
@@ -102,9 +86,9 @@ class CodecField(Field):
         return codec
 
 
-class BinaryField(Field):
-    def __init__(self, name, length=-1):
-        super().__init__(name)
+class BinaryField(BaseField):
+    def __init__(self, default=b'', length=-1):
+        super().__init__(default)
 
         self._length = length
 
@@ -112,7 +96,10 @@ class BinaryField(Field):
         return stream.read(self._length)
 
 
-class TextField(Field):
+class TextField(BaseField):
+    def __init__(self, default=""):
+        super().__init__(default)
+
     def read(self, stream, context) -> str:
         return self._read(stream, Codec.default())
 
@@ -121,6 +108,7 @@ class TextField(Field):
         text_bytes = b''
 
         char = codec.read(stream)
+
         while char and (char != codec.SEPARATOR):
             text_bytes += char
             char = codec.read(stream)
@@ -133,18 +121,29 @@ class EncodedTextField(TextField):
         return super()._read(stream, context.codec)
 
 
-class FixedLengthTextField(Field):
-    def __init__(self, name, length):
-        super().__init__(name)
+class FixedLengthTextField(BaseField):
+    def __init__(self, length):
+        super().__init__("")
 
         self._length = length
+        self._codec = Codec.default()
 
     def read(self, stream, context=None) -> str:
-        byte_string = Codec.default().read(stream, self._length)
+        byte_string = self._codec.read(stream, self._length)
 
-        return Codec.default().decode(byte_string)
+        return self._codec.decode(byte_string)
 
 
-class SynchsafeIntegerField(IntegerField):
-    def read(self, stream, context) -> int:
-        return unsynchsafe(super().read(stream, context))
+class SynchsafeHackField(IntegerField):
+    """You know what it is"""
+    def read(self, stream, context):
+        value = super().read(stream, context)
+        return unsynchsafe(value) if context.synchsafe_size else value
+
+
+class NoopField(BaseField):
+    def __init__(self, default):
+        super().__init__(default)
+
+    def read(self, stream, context) -> None:
+        return None
