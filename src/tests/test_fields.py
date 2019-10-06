@@ -1,9 +1,9 @@
 import unittest
 from io import BytesIO
 
-from id3vx.codec import UTF16Codec, Codec
+from id3vx.codec import UTF16Codec, Codec, Latin1Codec, UTF16BECodec, UTF8Codec
 from id3vx.fields import EncodedTextField, CodecField, IntegerField, \
-    GrowingIntegerField, BinaryField, TextField, FixedLengthTextField
+    GrowingIntegerField, BinaryField, TextField, FixedLengthTextField, Fields
 
 
 class FixedLengthTextFieldTests(unittest.TestCase):
@@ -16,7 +16,7 @@ class FixedLengthTextFieldTests(unittest.TestCase):
         field = FixedLengthTextField("language", length)
 
         # Act
-        text = field.read(BytesIO(byte_string))
+        text = field.read(BytesIO(byte_string), context=None)
 
         # Assert
         self.assertEqual(text, "hallo")
@@ -37,56 +37,68 @@ class FixedLengthTextFieldTests(unittest.TestCase):
 
 class CodecFieldTests(unittest.TestCase):
     def test_read_default_codec_from_stream(self):
+        """Reads default (Latin1)codec from stream and updates context"""
         # Arrange
         byte_string = b'\x00hallowelt\x00'
+        context = Fields.Context([], Latin1Codec())
 
         # System under test
         field = CodecField()
 
         # Act
-        codec = field.read(BytesIO(byte_string))
+        codec = field.read(BytesIO(byte_string), context)
 
         # Assert
         self.assertEqual(codec, Codec.default())
+        self.assertEqual(context.codec, codec)
 
     def test_read_utf16_codec_from_stream(self):
+        """Reads utf-16 codec from stream and updates context"""
         # Arrange
         byte_string = b'\x01\xff\xfea\x00b\00'
+        context = Fields.Context([], Latin1Codec())
 
         # System under test
         field = CodecField()
 
         # Act
-        codec = field.read(BytesIO(byte_string))
+        codec = field.read(BytesIO(byte_string), context)
 
         # Assert
-        self.assertEqual(codec, Codec.get(1))
+        self.assertEqual(type(codec), UTF16Codec)
+        self.assertEqual(context.codec, codec)
 
     def test_read_utf16be_codec_from_stream(self):
+        """Reads utf-16-be codec from stream and updates context"""
         # Arrange
         byte_string = b'\x02\xff\xfea\x00b\00'
+        context = Fields.Context([], Latin1Codec())
 
         # System under test
         field = CodecField()
 
         # Act
-        codec = field.read(BytesIO(byte_string))
+        codec = field.read(BytesIO(byte_string), context)
 
         # Assert
-        self.assertEqual(codec, Codec.get(2))
+        self.assertEqual(type(codec), UTF16BECodec)
+        self.assertEqual(context.codec, codec)
 
     def test_read_utf8_codec_from_stream(self):
+        """Reads utf-8 codec from stream and updates context"""
         # Arrange
-        byte_string = b'\x02\xff\xfea\x00b\00'
+        byte_string = b'\x03\xff\xfea\x00b\00'
+        context = Fields.Context([], Latin1Codec())
 
         # System under test
         field = CodecField()
 
         # Act
-        codec = field.read(BytesIO(byte_string))
+        codec = field.read(BytesIO(byte_string), context)
 
         # Assert
-        self.assertEqual(codec, Codec.get(2))
+        self.assertEqual(type(codec), UTF8Codec)
+        self.assertEqual(context.codec, codec)
 
 
 class BinaryFieldTests(unittest.TestCase):
@@ -99,7 +111,7 @@ class BinaryFieldTests(unittest.TestCase):
         field = BinaryField("text")
 
         # Act
-        field_bytes = field.read(BytesIO(byte_string))
+        field_bytes = field.read(BytesIO(byte_string), context=None)
 
         # Assert
         self.assertEqual(field_bytes, byte_string)
@@ -119,7 +131,7 @@ class TextFieldTests(unittest.TestCase):
         field = TextField("text")
 
         # Act
-        text = field.read(stream)
+        text = field.read(stream, context=None)
 
         # Assert
         self.assertEqual(text, expected_text)
@@ -132,7 +144,7 @@ class TextFieldTests(unittest.TestCase):
         expected_text = byte_string.decode("latin1")
 
         # System under test - Act
-        field = TextField("text").read(BytesIO(byte_string))
+        field = TextField("text").read(BytesIO(byte_string), context=None)
 
         # Act
         text = str(field)
@@ -146,7 +158,7 @@ class TextFieldTests(unittest.TestCase):
         empty_bytes = b''
 
         # System under test - Act
-        field = TextField("text").read(BytesIO(empty_bytes))
+        field = TextField("text").read(BytesIO(empty_bytes), context=None)
 
         # Act
         text = str(field)
@@ -159,6 +171,7 @@ class EncodedTextFieldTests(unittest.TestCase):
     def test_read_delimited_string(self):
         """Reads text up until null terminator \x00"""
         # Arrange
+        context = Fields.Context([], UTF16Codec())
         byte_string = b'\xff\xfea\x00b\x00c\x00d\x00e\x00\x00\x00'
         remainder = b'\xff\xfea\x00b\x00c\x00d\x00e\x00\x00\x00'
         expected_text = "abcde"
@@ -166,7 +179,7 @@ class EncodedTextFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string + remainder)
 
         # System under test - Act
-        field = EncodedTextField("text").read(stream, UTF16Codec())
+        field = EncodedTextField("text").read(stream, context)
 
         # Act
         text = str(field)
@@ -178,12 +191,12 @@ class EncodedTextFieldTests(unittest.TestCase):
     def test_read_undelimited_string(self):
         """Exhausts stream if no delimiter is found"""
         # Arrange
-        codec = UTF16Codec()
+        context = Fields.Context([], UTF16Codec())
         byte_string = b'\xff\xfea\x00b\x00c\x00d\x00e\x00'
         expected_text = "abcde"
 
         # System under test - Act
-        field = EncodedTextField("text").read(BytesIO(byte_string), codec)
+        field = EncodedTextField("text").read(BytesIO(byte_string), context)
 
         # Act
         text = str(field)
@@ -195,12 +208,13 @@ class EncodedTextFieldTests(unittest.TestCase):
         """Accepts empty streams"""
         # Arrange
         empty_bytes = b''
+        context = Fields.Context([], UTF16Codec())
 
         # System under test
         field = EncodedTextField("text")
 
         # Act
-        text = field.read(BytesIO(empty_bytes), UTF16Codec())
+        text = field.read(BytesIO(empty_bytes), context)
 
         # Assert
         self.assertEqual(text, "")
@@ -219,7 +233,7 @@ class GrowingIntegerFieldTests(unittest.TestCase):
         field = GrowingIntegerField("field")
 
         # Act
-        value = field.read(stream)
+        value = field.read(stream, context=None)
 
         # Assert
         self.assertEqual(value, expected_int)
@@ -236,7 +250,7 @@ class GrowingIntegerFieldTests(unittest.TestCase):
         field = GrowingIntegerField("field")
 
         # Act
-        value = field.read(stream)
+        value = field.read(stream, context=None)
 
         # Assert
         self.assertEqual(value, expected_int)
@@ -253,7 +267,7 @@ class GrowingIntegerFieldTests(unittest.TestCase):
         field = GrowingIntegerField("field")
 
         # Act
-        value = field.read(stream)
+        value = field.read(stream, context=None)
 
         # Assert
         self.assertEqual(value, expected_int)
@@ -273,7 +287,7 @@ class IntegerFieldTests(unittest.TestCase):
         field = IntegerField("field")
 
         # Act
-        value = field.read(stream)
+        value = field.read(stream, context=None)
 
         # Assert
         self.assertEqual(value, expected_int)

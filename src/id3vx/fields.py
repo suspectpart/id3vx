@@ -1,35 +1,43 @@
 import enum
+from abc import ABC, abstractmethod
 
 from id3vx.codec import Codec
 
 
 class Fields:
+    class Context:
+        """Stateful context to be handed down the fields pipeline.
+
+        Some fields down the pipe need to know whether there as an encoding
+        field present or if they are the last field in the pipe.
+        """
+        def __init__(self, fields, codec=Codec.default()):
+            self.codec = codec
+            self.last = fields[:-1]
+
     def __init__(self, *args):
         self._fields = args
 
     def read(self, stream):
-        codec = Codec.default()
-
+        context = Fields.Context(self._fields)
         results = {}
 
         for field in self._fields:
-            if type(field) == CodecField:
-                codec = field.read(stream)
-                results[field.name()] = codec
-            elif type(field) == EncodedTextField:
-                results[field.name()] = field.read(stream, codec)
-            else:
-                results[field.name()] = field.read(stream)
+            results[field.name()] = field.read(stream, context)
 
         return results
 
 
-class Field:
+class Field(ABC):
     def __init__(self, name):
         self._name = name
 
     def name(self):
         return self._name
+
+    @abstractmethod
+    def read(self, stream, context):
+        ...
 
 
 class IntegerField(Field):
@@ -38,7 +46,7 @@ class IntegerField(Field):
 
         self._length = length
 
-    def read(self, stream) -> int:
+    def read(self, stream, context=None) -> int:
         return int.from_bytes(stream.read(self._length), "big")
 
 
@@ -57,17 +65,19 @@ class EnumField(IntegerField):
 
         self._enum_type = enum_type
 
-    def read(self, stream) -> enum.Enum:
-        return self._enum_type(super().read(stream))
+    def read(self, stream, context=None) -> enum.Enum:
+        return self._enum_type(super().read(stream, context))
 
 
 class CodecField(Field):
     def __init__(self):
         super().__init__("codec")
 
-    # noinspection PyMethodMayBeStatic
-    def read(self, stream) -> Codec:
-        return Codec.get(stream.read(1)[0])
+    def read(self, stream, context) -> Codec:
+        codec = Codec.get(stream.read(1)[0])
+        context.codec = codec
+
+        return codec
 
 
 class BinaryField(Field):
@@ -76,13 +86,16 @@ class BinaryField(Field):
 
         self._length = length
 
-    # noinspection PyMethodMayBeStatic
-    def read(self, stream) -> bytes:
+    def read(self, stream, context) -> bytes:
         return stream.read(self._length)
 
 
 class TextField(Field):
-    def read(self, stream, codec=Codec.default()) -> str:
+    def read(self, stream, context) -> str:
+        return self._read(stream, Codec.default())
+
+    # noinspection PyMethodMayBeStatic
+    def _read(self, stream, codec):
         text_bytes = b''
 
         char = codec.read(stream)
@@ -94,8 +107,8 @@ class TextField(Field):
 
 
 class EncodedTextField(TextField):
-    def read(self, stream, codec=Codec.default()) -> str:
-        return super().read(stream, codec)
+    def read(self, stream, context) -> str:
+        return super()._read(stream, context.codec)
 
 
 class FixedLengthTextField(Field):
@@ -104,7 +117,7 @@ class FixedLengthTextField(Field):
 
         self._length = length
 
-    def read(self, stream) -> str:
+    def read(self, stream, context=None) -> str:
         byte_string = Codec.default().read(stream, self._length)
 
         return Codec.default().decode(byte_string)
