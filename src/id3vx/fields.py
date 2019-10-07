@@ -1,8 +1,8 @@
 import enum
 from dataclasses import Field, MISSING
 
-from id3vx.binary import unsynchsafe
-from id3vx.codec import Codec
+from id3vx.binary import unsynchsafe, synchsafe
+from id3vx.codec import Codec, _CODECS
 
 
 class Context:
@@ -11,9 +11,10 @@ class Context:
     Some fields down the pipe need to know whether there as an encoding
     field present or if they are the last field in the pipe.
     """
-    def __init__(self, fields, codec=Codec.default()):
+    def __init__(self, fields, codec=Codec.default(), synchsafe_size=False):
         self.codec = codec
-        self.last = fields[:-1]
+        self.last = fields[-1]
+        self.synchsafe_size = synchsafe_size
 
 
 class BaseField(Field):
@@ -74,6 +75,9 @@ class EnumField(IntegerField):
     def read(self, stream, context=None) -> enum.Enum:
         return self._enum_type(super().read(stream, context))
 
+    def write(self, stream, value, context):
+        stream.write(int(value).to_bytes(self._length, "big"))
+
 
 class CodecField(BaseField):
     def __init__(self):
@@ -85,6 +89,12 @@ class CodecField(BaseField):
 
         return codec
 
+    def write(self, stream, value: Codec, context):
+        context.codec = value
+        codec_key = list(_CODECS.keys())[list(_CODECS.values()).index(value.ENCODING)]
+
+        stream.write(codec_key.to_bytes(1, "big"))
+
 
 class BinaryField(BaseField):
     def __init__(self, default=b'', length=-1):
@@ -94,6 +104,9 @@ class BinaryField(BaseField):
 
     def read(self, stream, context) -> bytes:
         return stream.read(self._length)
+
+    def write(self, stream, value, context) -> bytes:
+        stream.write(value)
 
 
 class TextField(BaseField):
@@ -115,10 +128,18 @@ class TextField(BaseField):
 
         return codec.decode(text_bytes)
 
+    def write(self, stream, value: str, context):
+        stream.write(Codec.default().encode(value, context.last != self))
+
 
 class EncodedTextField(TextField):
     def read(self, stream, context) -> str:
         return super()._read(stream, context.codec)
+
+    def write(self, stream, value, context):
+        encoded = context.codec.encode(value, self != context.last)
+
+        stream.write(encoded)
 
 
 class FixedLengthTextField(BaseField):
@@ -133,12 +154,19 @@ class FixedLengthTextField(BaseField):
 
         return self._codec.decode(byte_string)
 
+    def write(self, stream, value, context):
+        stream.write(self._codec.encode(value, False))
+
 
 class SynchsafeHackField(IntegerField):
     """You know what it is"""
     def read(self, stream, context):
         value = super().read(stream, context)
         return unsynchsafe(value) if context.synchsafe_size else value
+
+    def write(self, stream, value: int, context):
+        value = value.to_bytes(4, "big")
+        stream.write(synchsafe(value) if context.synchsafe_size else value)
 
 
 class NoopField(BaseField):
@@ -147,3 +175,6 @@ class NoopField(BaseField):
 
     def read(self, stream, context) -> None:
         return None
+
+    def write(self, stream, value, context):
+        pass

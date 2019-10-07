@@ -1,7 +1,7 @@
 import unittest
 from io import BytesIO
 
-from id3vx.frame import FrameHeader, Frame, TextFrame, Frames, PCNT
+from id3vx.frame import FrameHeader, Frame, TextFrame, Frames, PCNT, UnknownFrame
 from id3vx.frame import CHAP, MCDI, NCON, COMM, TALB, APIC, PRIV
 from id3vx.tag import TagHeader
 
@@ -35,10 +35,9 @@ class FramesTests(unittest.TestCase):
         fields = b'\x00thealbum'
         stream = BytesIO(bytes(header) + fields)
         frame = PRIV.read(stream)
-        padding = b'\x00' * 81
         tag_header = TagHeader('ID3', 3, 0, TagHeader.Flags(0), 100)
 
-        byte_string = bytes(frame) + padding
+        byte_string = bytes(frame)
 
         # Act
         frames = Frames.read(BytesIO(byte_string), tag_header)
@@ -187,38 +186,24 @@ class FrameHeaderTests(unittest.TestCase):
 
 
 class FrameTests(unittest.TestCase):
-    def test_exposes_fields(self):
-        """Exposes relevant fields"""
-        # Arrange
-        frame_size = 100
-        header = FrameHeader('PRIV', frame_size, 0, False)
-        fields = b'\x0a\x0f\x00\x0f\x0c'
-
-        # System under test
-        frame = Frame(header, fields)
-
-        # Assert
-        self.assertEqual(frame.header, header)
-        self.assertEqual(frame.id(), "PRIV")
-        self.assertEqual(frame.fields, fields)
-        self.assertIn(str(fields), repr(frame))
-        self.assertEqual(len(frame), frame_size + len(header))
-
     def test_serializes_to_bytes(self):
         """Serializes itself to bytes"""
         # Arrange
         header = FrameHeader('PRIV', 100, 0, False)
         header_bytes = bytes(header)
-        fields = b'\x0a\x0f\x00\x0f\x0c'
+        owner = "horst"
+        data = b'\xfa\xff'
+
+        expected_bytes = header_bytes + b'horst\x00\xfa\xff'
 
         # System under test
-        frame = Frame(header, fields)
+        frame = PRIV(header, owner, data)
 
         # Act
         byte_string = bytes(frame)
 
         # Assert
-        self.assertEqual(byte_string, header_bytes + fields)
+        self.assertEqual(byte_string, expected_bytes)
 
     def test_no_frame_if_header_invalid(self):
         """Defaults to Frame ID if name is unknown"""

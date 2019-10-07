@@ -80,10 +80,15 @@ class FrameHeader:
         return instance
 
     def __bytes__(self):
-        return struct.pack('>4sLH',
-                           self.identifier.encode("latin1"),
-                           self.frame_size,
-                           self.flags)
+        fields = dataclasses.fields(self)
+        context = Context(fields, synchsafe_size=self.synchsafe_size)
+
+        with BytesIO() as stream:
+            for f in fields:
+                f.write(stream, self.__dict__[f.name], context)
+
+            stream.seek(0)
+            return stream.read()
 
     def __repr__(self):
         return f"FrameHeader({self.identifier}," \
@@ -150,12 +155,15 @@ class Frame:
         return f'{type(self).__name__}({repr(self.header)}) {attrs}'
 
     def __bytes__(self):
-        my_bytes = b''
-        for f in dataclasses.fields(self):
-            my_bytes += bytes(f)
+        fields = dataclasses.fields(self)
+        context = Context(fields)
 
-        return my_bytes
+        with BytesIO() as stream:
+            for f in fields:
+                f.write(stream, self.__dict__[f.name], context)
 
+            stream.seek(0)
+            return bytes(self.header) + stream.read()
 
 
 @dataclass

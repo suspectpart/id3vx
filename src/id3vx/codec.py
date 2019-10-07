@@ -27,9 +27,9 @@ class Codec:
         """Decode byte_string with given encoding"""
         return byte_string.decode(self.ENCODING)
 
-    def encode(self, byte_string):
+    def encode(self, byte_string, with_separator=True):
         """Decode byte_string with given encoding"""
-        return byte_string.encode(self.ENCODING) + self.SEPARATOR
+        return byte_string.encode(self.ENCODING) + (b'', self.SEPARATOR)[with_separator]
 
     def __str__(self):
         return self.ENCODING

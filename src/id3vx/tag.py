@@ -46,10 +46,10 @@ class TagHeader:
         FooterPresent = 1 << 4
 
     identifier: str = FixedLengthTextField(3)
-    major: int = IntegerField(default=0, length=1)
-    minor: int = IntegerField(default=0, length=1)
+    major: int = IntegerField(length=1)
+    minor: int = IntegerField(length=1)
     flags: Flags = EnumField(Flags, 1)
-    tag_size: int = SynchsafeIntegerField(length=4)
+    tag_size: int = SynchsafeIntegerField()
 
     @classmethod
     def read(cls, mp3):
@@ -121,6 +121,5 @@ class Tag:
     def __bytes__(self):
         header = bytes(self.header())
         frames = b"".join(bytes(frame) for frame in self)
-        padding = self.header().tag_size - len(frames)
 
-        return header + frames + b'\x00' * padding
+        return header + frames

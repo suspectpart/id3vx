@@ -3,7 +3,7 @@ from io import BytesIO
 
 from id3vx.codec import UTF16Codec, Codec, Latin1Codec, UTF16BECodec, UTF8Codec
 from id3vx.fields import EncodedTextField, CodecField, IntegerField, \
-    GrowingIntegerField, BinaryField, TextField, FixedLengthTextField, Fields
+    GrowingIntegerField, BinaryField, TextField, FixedLengthTextField, Context
 
 
 class FixedLengthTextFieldTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class FixedLengthTextFieldTests(unittest.TestCase):
         length = 5
 
         # System under test
-        field = FixedLengthTextField("language", length)
+        field = FixedLengthTextField(length)
 
         # Act
         text = field.read(BytesIO(byte_string), context=None)
@@ -26,7 +26,7 @@ class FixedLengthTextFieldTests(unittest.TestCase):
         byte_string = b'hallowelt'
 
         # System Under Test
-        field = FixedLengthTextField("language", 0)
+        field = FixedLengthTextField(length=0)
 
         # Act
         text = field.read(BytesIO(byte_string))
@@ -40,10 +40,10 @@ class CodecFieldTests(unittest.TestCase):
         """Reads default (Latin1)codec from stream and updates context"""
         # Arrange
         byte_string = b'\x00hallowelt\x00'
-        context = Fields.Context([], Latin1Codec())
 
         # System under test
         field = CodecField()
+        context = Context([field], Latin1Codec())
 
         # Act
         codec = field.read(BytesIO(byte_string), context)
@@ -56,10 +56,10 @@ class CodecFieldTests(unittest.TestCase):
         """Reads utf-16 codec from stream and updates context"""
         # Arrange
         byte_string = b'\x01\xff\xfea\x00b\00'
-        context = Fields.Context([], Latin1Codec())
 
         # System under test
         field = CodecField()
+        context = Context([field], Latin1Codec())
 
         # Act
         codec = field.read(BytesIO(byte_string), context)
@@ -72,10 +72,10 @@ class CodecFieldTests(unittest.TestCase):
         """Reads utf-16-be codec from stream and updates context"""
         # Arrange
         byte_string = b'\x02\xff\xfea\x00b\00'
-        context = Fields.Context([], Latin1Codec())
 
         # System under test
         field = CodecField()
+        context = Context([field], Latin1Codec())
 
         # Act
         codec = field.read(BytesIO(byte_string), context)
@@ -88,10 +88,10 @@ class CodecFieldTests(unittest.TestCase):
         """Reads utf-8 codec from stream and updates context"""
         # Arrange
         byte_string = b'\x03\xff\xfea\x00b\00'
-        context = Fields.Context([], Latin1Codec())
 
         # System under test
         field = CodecField()
+        context = Context([field], Latin1Codec())
 
         # Act
         codec = field.read(BytesIO(byte_string), context)
@@ -171,7 +171,7 @@ class EncodedTextFieldTests(unittest.TestCase):
     def test_read_delimited_string(self):
         """Reads text up until null terminator \x00"""
         # Arrange
-        context = Fields.Context([], UTF16Codec())
+        context = Context([None], UTF16Codec())
         byte_string = b'\xff\xfea\x00b\x00c\x00d\x00e\x00\x00\x00'
         remainder = b'\xff\xfea\x00b\x00c\x00d\x00e\x00\x00\x00'
         expected_text = "abcde"
@@ -191,12 +191,12 @@ class EncodedTextFieldTests(unittest.TestCase):
     def test_read_undelimited_string(self):
         """Exhausts stream if no delimiter is found"""
         # Arrange
-        context = Fields.Context([], UTF16Codec())
+        context = Context([None], UTF16Codec())
         byte_string = b'\xff\xfea\x00b\x00c\x00d\x00e\x00'
         expected_text = "abcde"
 
         # System under test - Act
-        field = EncodedTextField("text").read(BytesIO(byte_string), context)
+        field = EncodedTextField("text").read(BytesIO(byte_string), context=context)
 
         # Act
         text = str(field)
@@ -208,7 +208,7 @@ class EncodedTextFieldTests(unittest.TestCase):
         """Accepts empty streams"""
         # Arrange
         empty_bytes = b''
-        context = Fields.Context([], UTF16Codec())
+        context = Context([None], UTF16Codec())
 
         # System under test
         field = EncodedTextField("text")
@@ -230,7 +230,7 @@ class GrowingIntegerFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string)
 
         # System under test
-        field = GrowingIntegerField("field")
+        field = GrowingIntegerField()
 
         # Act
         value = field.read(stream, context=None)
@@ -247,7 +247,7 @@ class GrowingIntegerFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string)
 
         # System under test
-        field = GrowingIntegerField("field")
+        field = GrowingIntegerField()
 
         # Act
         value = field.read(stream, context=None)
@@ -264,7 +264,7 @@ class GrowingIntegerFieldTests(unittest.TestCase):
         stream = BytesIO(byte_string)
 
         # System under test
-        field = GrowingIntegerField("field")
+        field = GrowingIntegerField()
 
         # Act
         value = field.read(stream, context=None)

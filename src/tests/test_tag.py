@@ -23,16 +23,15 @@ class TagTests(unittest.TestCase):
 
     def test_serialize_to_bytes(self):
         # Arrange
-        padding = 80
         flags = TagHeader.Flags.Experimental
         codec = Codec.default()
 
-        header = FrameHeader('TALB', 10, 0, False)
+        tag_header = TagHeader('ID3', 3, 2, flags, 18)
 
-        frame = TextFrame(header, codec, "sometext")
-        tag_header = TagHeader('ID3', 3, 2, flags, 20 + padding)
+        frame_header = FrameHeader('TALB', 10, 0, False)
+        frame = TextFrame(frame_header, codec, "sometext")
 
-        expected_bytes = bytes(tag_header) + bytes(frame) + padding * b'\x00'
+        expected_bytes = bytes(tag_header) + bytes(frame)
 
         # System under test
         tag = Tag(tag_header, Frames([frame]))
